@@ -29,6 +29,7 @@ from nyu_treehole.utils import (
     hash_password,
     verify_password,
 )
+from nyu_treehole.ai_moderation import check_content_safety
 
 
 class TreeholeHandler(BaseHTTPRequestHandler):
@@ -212,25 +213,6 @@ class TreeholeHandler(BaseHTTPRequestHandler):
                 )
             return
 
-        if parsed.path == "/api/admin/posts":
-            if not self._is_admin():
-                self._unauthorized()
-                return
-            status = parse_qs(parsed.query).get("status", ["pending"])[0]
-            if status not in {"pending", "approved", "hidden", "flagged"}:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid status"})
-                return
-            posts = self.db.list_posts(status=status)
-            self._json(HTTPStatus.OK, {"posts": posts})
-            return
-
-        if parsed.path == "/api/admin/reports":
-            if not self._is_admin():
-                self._unauthorized()
-                return
-            reports = self.db.list_reports()
-            self._json(HTTPStatus.OK, {"reports": reports})
-            return
 
         self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
@@ -338,28 +320,20 @@ class TreeholeHandler(BaseHTTPRequestHandler):
                 self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid category"})
                 return
 
-            sensitive_hits = find_sensitive_hits(content, tag)
-            if sensitive_hits and AUTO_BAN_ON_SENSITIVE and user:
-                reason = f"sensitive content: {', '.join(sensitive_hits[:10])}"
-                self.db.ban_user(int(user["id"]), reason=reason)
-                self._json(
-                    HTTPStatus.FORBIDDEN,
-                    {
-                        "error": "post blocked due to sensitive content; account banned",
-                        "flagged": True,
-                        "sensitive_hits": sensitive_hits,
-                    },
-                    set_cookie=self._clear_session_cookie(),
-                )
+            # AI Moderation
+            is_safe, reason = check_content_safety(content)
+            if not is_safe:
+                self._json(HTTPStatus.FORBIDDEN, {"error": f"Content rejected by AI moderation: {reason}"})
                 return
-            review_status = "flagged" if sensitive_hits else "pending"
+
+            review_status = "approved"
             post_id = self.db.add_post(
                 content=content,
                 category=category,
                 tag=tag,
                 user_id=(int(user["id"]) if user else None),
                 status=review_status,
-                sensitive_hits=",".join(sensitive_hits) if sensitive_hits else None,
+                sensitive_hits=None,
             )
             self.post_limit[ip] = now
             self._json(
@@ -368,8 +342,6 @@ class TreeholeHandler(BaseHTTPRequestHandler):
                     "ok": True,
                     "id": post_id,
                     "status": review_status,
-                    "flagged": bool(sensitive_hits),
-                    "sensitive_hits": sensitive_hits,
                 },
             )
             return
@@ -467,75 +439,7 @@ class TreeholeHandler(BaseHTTPRequestHandler):
             self._json(HTTPStatus.CREATED, {"ok": True, "id": bid})
             return
 
-        if parsed.path.startswith("/api/posts/") and parsed.path.endswith("/report"):
-            chunks = parsed.path.split("/")
-            if len(chunks) != 5:
-                self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
-                return
-            try:
-                post_id = int(chunks[3])
-            except ValueError:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid post id"})
-                return
-            try:
-                data = self._read_json()
-            except json.JSONDecodeError:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid json"})
-                return
-            reason = (data.get("reason") or "").strip()[:120]
-            reason = reason if reason else None
-            user = self._current_user()
-            if user and self._is_banned_user(user):
-                self._json(HTTPStatus.FORBIDDEN, {"error": f"account banned: {user.get('ban_reason') or 'policy violation'}"})
-                return
-            ip = self._client_ip()
-            ok, duplicate, auto_hidden, target_user_id = self.db.report_post(
-                post_id=post_id,
-                reporter_user_id=(int(user["id"]) if user else None),
-                reporter_ip=ip,
-                reason=reason,
-            )
-            if duplicate:
-                self._json(HTTPStatus.CONFLICT, {"error": "already reported"})
-                return
-            if not ok:
-                self._json(HTTPStatus.NOT_FOUND, {"error": "post not found or not approved"})
-                return
-            if target_user_id:
-                self.db.ban_user(
-                    user_id=target_user_id,
-                    reason=f"reported post #{post_id}",
-                )
-            self._json(HTTPStatus.OK, {"ok": True, "auto_hidden": auto_hidden})
-            return
 
-        if parsed.path.startswith("/api/admin/posts/") and parsed.path.endswith("/moderate"):
-            if not self._is_admin():
-                self._unauthorized()
-                return
-            chunks = parsed.path.split("/")
-            if len(chunks) != 6:
-                self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
-                return
-            try:
-                post_id = int(chunks[4])
-            except ValueError:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid post id"})
-                return
-            try:
-                data = self._read_json()
-            except json.JSONDecodeError:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid json"})
-                return
-            action = (data.get("action") or "").strip()
-            ok, owner_id = self.db.moderate(post_id=post_id, action=action)
-            if not ok:
-                self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid action or post not found"})
-                return
-            if action == "delete" and owner_id:
-                self.db.ban_user(user_id=owner_id, reason=f"post deleted by admin #{post_id}")
-            self._json(HTTPStatus.OK, {"ok": True})
-            return
 
         self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 

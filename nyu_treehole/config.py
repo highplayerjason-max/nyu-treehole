@@ -4,8 +4,8 @@ from pathlib import Path
 
 # Adjust ROOT to point to the repository root (parent of this package)
 ROOT = Path(__file__).parent.parent
-DB_PATH = ROOT / "treehole.db"
-HOST = os.environ.get("HOST", "127.0.0.1")
+DB_PATH = Path(os.environ.get("DB_PATH", ROOT / "treehole.db"))
+HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8000"))
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "change-me")
 POST_COOLDOWN_SECONDS = 15
@@ -25,3 +25,8 @@ ADMIN_USERNAMES = {
     if u.strip()
 }
 SENSITIVE_WORDS_FILE = Path(os.environ.get("SENSITIVE_WORDS_FILE", str(ROOT / "sensitive_words.txt")))
+
+# AI Moderation Configuration
+AI_MODERATION_API_KEY = os.environ.get("AI_MODERATION_API_KEY", "sk-7Faibu12aAKWQMPhUGqA311k1jSnVxWtzY4tZgmSgdpYvtGP")
+AI_MODERATION_BASE_URL = os.environ.get("AI_MODERATION_BASE_URL", "https://poloai.top/v1/")
+AI_MODERATION_MODEL = os.environ.get("AI_MODERATION_MODEL", "gemini-2.0-flash")

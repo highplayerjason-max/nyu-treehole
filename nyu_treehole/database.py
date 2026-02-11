@@ -114,6 +114,7 @@ class DB:
 
     def _init(self):
         with self._conn() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute(CREATE_POSTS_TABLE_SQL)
             conn.execute(CREATE_USERS_TABLE_SQL)
             conn.execute(CREATE_SESSIONS_TABLE_SQL)
@@ -137,6 +138,8 @@ class DB:
                 conn.execute("ALTER TABLE posts ADD COLUMN category TEXT NOT NULL DEFAULT 'general'")
             if "sensitive_hits" not in cols:
                 conn.execute("ALTER TABLE posts ADD COLUMN sensitive_hits TEXT")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_posts_tag ON posts(tag)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_post_id ON reports(post_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_user_id ON reports(reporter_user_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_ip ON reports(reporter_ip)")
