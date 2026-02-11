@@ -438,7 +438,7 @@ class DB:
         with self._conn() as conn:
             conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (now_ts,))
             row = conn.execute(
-                "SELECT u.id, u.username, u.is_admin, u.is_banned, u.ban_reason, u.banned_at "
+                "SELECT u.id, u.username, u.is_admin, u.is_banned, u.ban_reason, u.banned_at, u.created_at "
                 "FROM sessions s JOIN users u ON s.user_id = u.id "
                 "WHERE s.token = ? AND s.expires_at > ?",
                 (token, now_ts),

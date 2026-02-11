@@ -23,7 +23,7 @@ from nyu_treehole.config import (
     SUPER_ADMIN_USERNAME,
 )
 from nyu_treehole.database import DB
-from nyu_treehole.templates import BROADCAST_HTML, INDEX_HTML
+from nyu_treehole.templates import BROADCAST_HTML, INDEX_HTML, LOGIN_HTML, REGISTER_HTML
 from nyu_treehole.utils import (
     find_sensitive_hits,
     hash_password,
@@ -108,10 +108,32 @@ class TreeholeHandler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         parsed = urlparse(self.path)
+        
+        # Protected Pages Check for HEAD
+        if parsed.path in ["/", "/latest", "/hot", "/search", "/topic", "/broadcast", "/profile"]:
+            user = self._current_user()
+            if not user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
         if parsed.path == "/":
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(INDEX_HTML.encode("utf-8"))))
+            self.end_headers()
+            return
+        if parsed.path == "/login":
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(LOGIN_HTML.encode("utf-8"))))
+            self.end_headers()
+            return
+        if parsed.path == "/register":
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(REGISTER_HTML.encode("utf-8"))))
             self.end_headers()
             return
         if parsed.path == "/api/posts":
@@ -126,6 +148,39 @@ class TreeholeHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+
+        if parsed.path == "/login":
+            user = self._current_user()
+            if user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            self._html(HTTPStatus.OK, LOGIN_HTML)
+            return
+
+        if parsed.path == "/register":
+            user = self._current_user()
+            if user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/")
+                self.end_headers()
+                return
+            self._html(HTTPStatus.OK, REGISTER_HTML)
+            return
+
+        # Protected Pages Check
+        if parsed.path in ["/", "/latest", "/hot", "/search", "/topic", "/broadcast", "/profile"]:
+            user = self._current_user()
+            if not user:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", "/login")
+                self.end_headers()
+                return
+
+        if parsed.path == "/profile":
+            self._html(HTTPStatus.OK, self._render_index("profile"))
+            return
 
         if parsed.path == "/":
             self._html(HTTPStatus.OK, BROADCAST_HTML if self._is_broadcast_host() else self._render_index("latest"))
@@ -208,6 +263,7 @@ class TreeholeHandler(BaseHTTPRequestHandler):
                             "is_admin": bool(int(user.get("is_admin", 0))),
                             "is_banned": bool(int(user.get("is_banned", 0))),
                             "ban_reason": user.get("ban_reason"),
+                            "created_at": user.get("created_at"),
                         },
                     },
                 )

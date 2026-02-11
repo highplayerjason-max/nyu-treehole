@@ -10,7 +10,11 @@ SSH_KEY="Key.pem"
 
 SSH_CMD="ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=no"
 if [ -n "$SSH_KEY" ]; then
-    SSH_CMD="$SSH_CMD -i $SSH_KEY"
+    if [ -f "$SSH_KEY" ]; then
+        SSH_CMD="$SSH_CMD -i $SSH_KEY"
+    else
+        echo "⚠️  Warning: SSH key '$SSH_KEY' not found. Trying default SSH authentication..."
+    fi
 fi
 
 echo "🚀 Deploying to Aliyun ($SERVER_IP)..."

@@ -1,4 +1,244 @@
 
+LOGIN_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - NYU Treehole</title>
+  <style>
+    :root {
+      --bg: #f5f1fb;
+      --card: #ffffff;
+      --ink: #231942;
+      --muted: #6f668a;
+      --accent: #57068c;
+      --accent-2: #7c3aed;
+      --line: #ddd3f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(87,6,140,0.22) 0, rgba(87,6,140,0) 42%),
+        radial-gradient(circle at 85% 12%, rgba(124,58,237,0.16) 0, rgba(124,58,237,0) 40%),
+        var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 10px 26px rgba(87,6,140,0.08);
+      width: 100%;
+      max-width: 360px;
+    }
+    h2 { text-align: center; margin-top: 0; margin-bottom: 20px; }
+    input {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { opacity: 0.9; }
+    .meta { text-align: center; margin-top: 16px; font-size: 14px; color: var(--muted); }
+    .status { margin-top: 12px; text-align: center; font-size: 14px; min-height: 20px; color: var(--accent); }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Login</h2>
+    <input id="username" type="text" placeholder="Username" maxlength="24" />
+    <input id="password" type="password" placeholder="Password" maxlength="72" />
+    <button id="loginBtn">Login</button>
+    <div class="status" id="status"></div>
+    <div class="meta">
+      <a href="/register">No account? Register</a>
+    </div>
+  </div>
+  <script>
+    const status = document.getElementById('status');
+    const loginBtn = document.getElementById('loginBtn');
+    
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        status.textContent = "Username and password required";
+        return;
+      }
+      status.textContent = "Logging in...";
+      loginBtn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username, password})
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.error || "Login failed";
+          loginBtn.disabled = false;
+        } else {
+          status.textContent = "Success! Redirecting...";
+          window.location.href = '/';
+        }
+      } catch (e) {
+        status.textContent = "Network error";
+        loginBtn.disabled = false;
+      }
+    }
+
+    loginBtn.addEventListener('click', login);
+    document.getElementById('password').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
+"""
+
+REGISTER_HTML = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register - NYU Treehole</title>
+  <style>
+    :root {
+      --bg: #f5f1fb;
+      --card: #ffffff;
+      --ink: #231942;
+      --muted: #6f668a;
+      --accent: #57068c;
+      --accent-2: #7c3aed;
+      --line: #ddd3f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(87,6,140,0.22) 0, rgba(87,6,140,0) 42%),
+        radial-gradient(circle at 85% 12%, rgba(124,58,237,0.16) 0, rgba(124,58,237,0) 40%),
+        var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 10px 26px rgba(87,6,140,0.08);
+      width: 100%;
+      max-width: 360px;
+    }
+    h2 { text-align: center; margin-top: 0; margin-bottom: 20px; }
+    input {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #3f2a63; }
+    button:hover { opacity: 0.9; }
+    .meta { text-align: center; margin-top: 16px; font-size: 14px; color: var(--muted); }
+    .status { margin-top: 12px; text-align: center; font-size: 14px; min-height: 20px; color: var(--accent); }
+    a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Register</h2>
+    <input id="username" type="text" placeholder="Username (3-24 chars)" maxlength="24" />
+    <input id="password" type="password" placeholder="Password (>=8 chars)" maxlength="72" />
+    <button id="regBtn" class="secondary">Register</button>
+    <div class="status" id="status"></div>
+    <div class="meta">
+      <a href="/login">Have account? Login</a>
+    </div>
+  </div>
+  <script>
+    const status = document.getElementById('status');
+    const regBtn = document.getElementById('regBtn');
+    
+    async function register() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) {
+        status.textContent = "Username and password required";
+        return;
+      }
+      status.textContent = "Registering...";
+      regBtn.disabled = true;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username, password})
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.error || "Register failed";
+          regBtn.disabled = false;
+        } else {
+          status.textContent = "Success! Logging in...";
+          // Auto login or redirect
+          window.location.href = '/';
+        }
+      } catch (e) {
+        status.textContent = "Network error";
+        regBtn.disabled = false;
+      }
+    }
+
+    regBtn.addEventListener('click', register);
+    document.getElementById('password').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') register();
+    });
+  </script>
+</body>
+</html>
+"""
+
 INDEX_HTML = """<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -123,22 +363,14 @@ INDEX_HTML = """<!doctype html>
       <button id="langZhBtn" class="secondary">中文</button>
     </div>
 
-    <section id="authSection" class="card">
-      <div class="row" style="margin-top: 0;">
-        <strong data-i18n="account_title">Account</strong>
-        <input id="username" type="text" maxlength="24" data-i18n-placeholder="username_placeholder" placeholder="Username (3-24 chars)" />
-        <input id="password" type="password" maxlength="72" data-i18n-placeholder="password_placeholder" placeholder="Password (>=8 chars)" />
+    <section id="userBar" class="card hidden">
+      <div class="row" style="margin-top: 0; justify-content: space-between; align-items: center;">
+        <div id="userBarInfo" class="meta"></div>
+        <div style="display: flex; gap: 8px;">
+          <a href="/profile"><button class="secondary" style="padding: 6px 12px; font-size: 13px;" data-i18n="profile_btn">Profile</button></a>
+          <button id="doLogoutBtn" class="warn" style="padding: 6px 12px; font-size: 13px;" data-i18n="logout_btn">Logout</button>
+        </div>
       </div>
-      <div class="row">
-        <button id="registerBtn" class="secondary" data-i18n="register_btn">Register</button>
-        <button id="loginBtn" data-i18n="login_btn">Login</button>
-        <button id="logoutBtn" class="warn" data-i18n="logout_btn">Logout</button>
-      </div>
-      <div class="auth-meta">
-        <span class="pill" id="authState"></span>
-        <span class="meta" data-i18n="auth_hint">Posting currently requires login.</span>
-      </div>
-      <div id="authStatus" class="status meta"></div>
     </section>
 
     <section id="composeSection" class="card">
@@ -194,6 +426,17 @@ INDEX_HTML = """<!doctype html>
       <div id="topicList" style="margin-top: 10px;"></div>
     </section>
 
+    <section id="profileSection" class="card hidden">
+      <div class="row" style="margin-top: 0;">
+        <strong data-i18n="profile_title">My Profile</strong>
+      </div>
+      <div id="profileInfo" class="meta" style="margin-top: 10px;"></div>
+      <div style="margin-top: 14px;">
+        <strong data-i18n="my_posts_title">My Posts</strong>
+        <div id="myPostsList" style="margin-top: 10px;"></div>
+      </div>
+    </section>
+
     <section id="adminPanel" class="card admin hidden">
       <div class="row" style="margin-top: 0;">
         <strong data-i18n="admin_title">Admin Moderation</strong>
@@ -217,8 +460,6 @@ INDEX_HTML = """<!doctype html>
     const hotList = document.getElementById('hotList');
     const submitStatus = document.getElementById('submitStatus');
     const adminStatus = document.getElementById('adminStatus');
-    const authStatus = document.getElementById('authStatus');
-    const authState = document.getElementById('authState');
     let currentLang = localStorage.getItem('treehole_lang') || 'en';
     let currentUser = null;
 
@@ -229,10 +470,6 @@ INDEX_HTML = """<!doctype html>
         subtitle: 'This is weird, but you are welcome.',
         language_label: 'Language',
         account_title: 'Account',
-        username_placeholder: 'Username (3-24 chars)',
-        password_placeholder: 'Password (>=8 chars)',
-        register_btn: 'Register',
-        login_btn: 'Login',
         logout_btn: 'Logout',
         auth_hint: 'Posting currently requires login.',
         content_placeholder: 'Write your message... (max 500 chars)',
@@ -288,12 +525,6 @@ INDEX_HTML = """<!doctype html>
         delete_btn: 'Delete',
         not_logged_in: 'Not logged in',
         logged_in_as: 'Logged in',
-        registering: 'Registering...',
-        register_failed: 'Register failed',
-        registered_as: 'Registered',
-        logging_in: 'Logging in...',
-        login_failed: 'Login failed',
-        welcome: 'Welcome',
         logout_failed: 'Logout failed',
         logged_out: 'Logged out',
         loading: 'Loading...',
@@ -315,7 +546,15 @@ INDEX_HTML = """<!doctype html>
         action_approve: 'approved',
         action_hide: 'hidden',
         action_delete: 'deleted',
-        sensitive_review_msg: 'Posted #{id}. Sensitive words detected, sent to flagged review.'
+        sensitive_review_msg: 'Posted #{id}. Sensitive words detected, sent to flagged review.',
+        profile_title: 'My Profile',
+        my_posts_title: 'My Posts',
+        profile_btn: 'Profile',
+        joined_at: 'Joined at',
+        role_label: 'Role',
+        role_admin: 'Admin',
+        role_user: 'User',
+        role_banned: 'Banned'
       },
       zh: {
         page_title: 'NYU 树洞',
@@ -323,10 +562,6 @@ INDEX_HTML = """<!doctype html>
         subtitle: '我是给，你也是给',
         language_label: '语言',
         account_title: '账号',
-        username_placeholder: '用户名（3-24位）',
-        password_placeholder: '密码（至少8位）',
-        register_btn: '注册',
-        login_btn: '登录',
         logout_btn: '退出',
         auth_hint: '当前需要登录后才能投稿。',
         content_placeholder: '写下你想说的话...（最多500字）',
@@ -382,12 +617,6 @@ INDEX_HTML = """<!doctype html>
         delete_btn: '删除',
         not_logged_in: '未登录',
         logged_in_as: '已登录',
-        registering: '注册中...',
-        register_failed: '注册失败',
-        registered_as: '注册成功',
-        logging_in: '登录中...',
-        login_failed: '登录失败',
-        welcome: '欢迎',
         logout_failed: '退出失败',
         logged_out: '已退出',
         loading: '加载中...',
@@ -409,7 +638,15 @@ INDEX_HTML = """<!doctype html>
         action_approve: '通过',
         action_hide: '隐藏',
         action_delete: '删除',
-        sensitive_review_msg: '已投稿 #{id}。检测到敏感词，已进入敏感词复核队列。'
+        sensitive_review_msg: '已投稿 #{id}。检测到敏感词，已进入敏感词复核队列。',
+        profile_title: '我的资料',
+        my_posts_title: '我的投稿',
+        profile_btn: '个人资料',
+        joined_at: '注册时间',
+        role_label: '角色',
+        role_admin: '管理员',
+        role_user: '普通用户',
+        role_banned: '已封禁'
       }
     };
 
@@ -427,14 +664,12 @@ INDEX_HTML = """<!doctype html>
     }
 
     function renderAuthState() {
-      if (!currentUser) {
-        authState.textContent = t('not_logged_in');
-      } else {
-        authState.textContent = `${t('logged_in_as')}: ${currentUser.username}`;
+      if (currentUser) {
+        document.getElementById('userBarInfo').textContent = `${t('logged_in_as')}: ${esc(currentUser.username)}`;
+        const adminPanel = document.getElementById('adminPanel');
+        const isSuperAdmin = !!(currentUser && (currentUser.username || '').toLowerCase() === 'signupbook');
+        adminPanel.classList.toggle('hidden', !isSuperAdmin);
       }
-      const adminPanel = document.getElementById('adminPanel');
-      const isSuperAdmin = !!(currentUser && (currentUser.username || '').toLowerCase() === 'signupbook');
-      adminPanel.classList.toggle('hidden', !isSuperAdmin);
     }
 
     function applyLang() {
@@ -456,51 +691,60 @@ INDEX_HTML = """<!doctype html>
 
     function applyPageMode() {
       const p = String(window.__PAGE_MODE__ || window.location.pathname.toLowerCase()).toLowerCase();
-      const auth = document.getElementById('authSection');
+      // Sections
+      const userBar = document.getElementById('userBar');
       const compose = document.getElementById('composeSection');
       const latest = document.getElementById('latestSection');
       const hot = document.getElementById('hotSection');
       const search = document.getElementById('searchSection');
       const topic = document.getElementById('topicSection');
+      const profile = document.getElementById('profileSection');
+      
+      // Nav
       const navLatestBtn = document.getElementById('navLatestBtn');
       const navHotBtn = document.getElementById('navHotBtn');
       const navSearchBtn = document.getElementById('navSearchBtn');
       const navTopicBtn = document.getElementById('navTopicBtn');
       const navBroadcastBtn = document.getElementById('navBroadcastBtn');
+      const navContainer = navLatestBtn ? navLatestBtn.parentElement.parentElement : null; // .row
+
+      // Reset Nav Active
       [navLatestBtn, navHotBtn, navSearchBtn, navTopicBtn, navBroadcastBtn].forEach((btn) => {
         if (btn) btn.classList.remove('nav-active');
       });
-      auth.classList.remove('hidden');
-      compose.classList.remove('hidden');
-      latest.classList.remove('hidden');
-      hot.classList.remove('hidden');
-      search.classList.remove('hidden');
-      topic.classList.remove('hidden');
-      if (p === 'latest' || p === '/latest' || p === '/') {
-        hot.classList.add('hidden');
-        search.classList.add('hidden');
-        topic.classList.add('hidden');
+
+      // Hide All First
+      if (userBar) userBar.classList.add('hidden');
+      if (compose) compose.classList.add('hidden');
+      if (latest) latest.classList.add('hidden');
+      if (hot) hot.classList.add('hidden');
+      if (search) search.classList.add('hidden');
+      if (topic) topic.classList.add('hidden');
+      if (profile) profile.classList.add('hidden');
+      if (navContainer) navContainer.style.display = 'flex';
+
+      // App Modes
+      if (userBar) userBar.classList.remove('hidden');
+      
+      if (p === 'profile' || p === '/profile') {
+        if (profile) {
+          profile.classList.remove('hidden');
+          if (typeof loadProfile === 'function') loadProfile();
+        }
+      } else if (p === 'latest' || p === '/latest' || p === '/') {
+        if (compose) compose.classList.remove('hidden');
+        if (latest) latest.classList.remove('hidden');
         navLatestBtn && navLatestBtn.classList.add('nav-active');
       } else if (p === 'hot' || p === '/hot') {
-        compose.classList.add('hidden');
-        latest.classList.add('hidden');
-        search.classList.add('hidden');
-        topic.classList.add('hidden');
+        if (hot) hot.classList.remove('hidden');
         navHotBtn && navHotBtn.classList.add('nav-active');
       } else if (p === 'search' || p === '/search') {
-        compose.classList.add('hidden');
-        latest.classList.add('hidden');
-        hot.classList.add('hidden');
-        topic.classList.add('hidden');
+        if (search) search.classList.remove('hidden');
         navSearchBtn && navSearchBtn.classList.add('nav-active');
       } else if (p === 'topic' || p === '/topic') {
-        compose.classList.add('hidden');
-        latest.classList.add('hidden');
-        hot.classList.add('hidden');
-        search.classList.add('hidden');
+        if (topic) topic.classList.remove('hidden');
         navTopicBtn && navTopicBtn.classList.add('nav-active');
       } else if (p === 'broadcast' || p === '/broadcast') {
-        topic.classList.add('hidden');
         navBroadcastBtn && navBroadcastBtn.classList.add('nav-active');
       }
     }
@@ -575,55 +819,20 @@ INDEX_HTML = """<!doctype html>
         currentUser = data.user;
       } else {
         currentUser = null;
+        // Force redirect if not logged in and not on a special page, but this logic is mostly backend now.
       }
       renderAuthState();
-    }
-
-    async function register() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      authStatus.textContent = t('registering');
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password})
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        authStatus.textContent = data.error || t('register_failed');
-        return;
-      }
-      authStatus.textContent = `${t('registered_as')} ${data.user.username}`;
-      await fetchMe();
-    }
-
-    async function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      authStatus.textContent = t('logging_in');
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password})
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        authStatus.textContent = data.error || t('login_failed');
-        return;
-      }
-      authStatus.textContent = `${t('welcome')} ${data.user.username}`;
-      await fetchMe();
     }
 
     async function logout() {
       const res = await fetch('/api/auth/logout', {method: 'POST'});
       const data = await res.json();
       if (!res.ok) {
-        authStatus.textContent = data.error || t('logout_failed');
+        alert(data.error || t('logout_failed'));
         return;
       }
-      authStatus.textContent = t('logged_out');
       await fetchMe();
+      window.location.href = '/login';
     }
 
     async function fetchFeed() {
@@ -890,6 +1099,32 @@ INDEX_HTML = """<!doctype html>
       await Promise.all([fetchFeed(), loadHot()]);
     }
 
+    async function loadProfile() {
+      if (!currentUser) {
+        document.getElementById('profileInfo').innerHTML = `<div class="meta">${t('not_logged_in')}</div>`;
+        return;
+      }
+      const role = currentUser.is_banned ? t('role_banned') : (currentUser.is_admin ? t('role_admin') : t('role_user'));
+      const created = currentUser.created_at ? new Date(currentUser.created_at).toLocaleString() : '-';
+      
+      let html = `
+        <div><strong>${t('account_title')}</strong>: ${esc(currentUser.username)}</div>
+        <div class="meta">ID: ${currentUser.id} · ${t('role_label')}: ${role} · ${t('joined_at')}: ${created}</div>
+      `;
+      document.getElementById('profileInfo').innerHTML = html;
+
+      const box = document.getElementById('myPostsList');
+      box.innerHTML = `<div class="meta">${t('loading')}</div>`;
+      const res = await fetch(`/api/search?q=${encodeURIComponent(currentUser.username)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        box.innerHTML = `<div class="meta">${esc(data.error || t('load_failed'))}</div>`;
+        return;
+      }
+      const myPosts = (data.posts || []).filter(p => p.username === currentUser.username);
+      box.innerHTML = myPosts.map((p) => summaryCard(p, false)).join('') || `<div class="meta">${t('no_search_results')}</div>`;
+    }
+
     async function loadTopic() {
       const tag = (document.getElementById('topicTag').value || '').trim();
       const box = document.getElementById('topicList');
@@ -928,9 +1163,7 @@ INDEX_HTML = """<!doctype html>
       applyLang();
       fetchFeed();
     });
-    document.getElementById('registerBtn').addEventListener('click', register);
-    document.getElementById('loginBtn').addEventListener('click', login);
-    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('doLogoutBtn').addEventListener('click', logout);
     document.getElementById('searchBtn').addEventListener('click', doSearch);
     document.getElementById('loadHotBtn').addEventListener('click', loadHot);
     document.getElementById('refreshBtn').addEventListener('click', fetchFeed);
