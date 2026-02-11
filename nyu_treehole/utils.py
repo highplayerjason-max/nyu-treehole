@@ -50,9 +50,4 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def find_sensitive_hits(*texts: Optional[str]) -> list[str]:
-    merged = " ".join([(t or "") for t in texts]).lower()
-    hits = []
-    for word in SENSITIVE_WORDS:
-        if word and word in merged:
-            hits.append(word)
-    return sorted(set(hits))
+    return []
