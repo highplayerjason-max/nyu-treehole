@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy the application code
 COPY . .
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies using Aliyun mirror for speed in China
+RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # Create a volume mount point for the database
 # This ensures the database persists even if the container is restarted

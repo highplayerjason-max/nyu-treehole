@@ -382,6 +382,12 @@ class TreeholeHandler(BaseHTTPRequestHandler):
                 self._json(HTTPStatus.FORBIDDEN, {"error": f"Content rejected by AI moderation: {reason}"})
                 return
 
+            if tag:
+                is_safe, reason = check_content_safety(tag)
+                if not is_safe:
+                    self._json(HTTPStatus.FORBIDDEN, {"error": f"Tag rejected by AI moderation: {reason}"})
+                    return
+
             review_status = "approved"
             post_id = self.db.add_post(
                 content=content,
@@ -431,6 +437,13 @@ class TreeholeHandler(BaseHTTPRequestHandler):
             if len(content) > MAX_COMMENT_LEN:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": f"comment too long (max {MAX_COMMENT_LEN})"})
                 return
+
+            # AI Moderation
+            is_safe, reason = check_content_safety(content)
+            if not is_safe:
+                self._json(HTTPStatus.FORBIDDEN, {"error": f"Comment rejected by AI moderation: {reason}"})
+                return
+
             ok, comment_id = self.db.add_comment(post_id=post_id, user_id=int(user["id"]), content=content)
             if not ok:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "post not found or not approved"})
