@@ -46,5 +46,6 @@ jobs:
             cd /root/nyu-treehole
             docker compose pull
             docker compose up -d
-            docker compose exec -T app npx prisma migrate deploy 2>/dev/null || true
+            sleep 5
+            docker exec nyu-treehole-db-1 psql -U postgres -d student_community -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true
             echo "Deploy done at $(date)"
