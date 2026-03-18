@@ -22,6 +22,7 @@ export const treeholePostSchema = z.object({
     .string()
     .min(1, "内容不能为空")
     .max(2000, "内容最多2000个字符"),
+  imageUrl: z.string().url().optional().or(z.literal("")),
   isAnonymous: z.boolean().default(false),
 });
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -22,6 +23,7 @@ interface PostCardProps {
   post: {
     id: string;
     content: string;
+    imageUrl?: string | null;
     isAnonymous: boolean;
     author: { id: string; displayName: string; avatarUrl?: string | null } | null;
     hashtags: { hashtag: { id: string; name: string } }[];
@@ -134,6 +136,17 @@ export function PostCard({ post }: PostCardProps) {
           <p className="text-sm whitespace-pre-wrap break-words mb-3 leading-relaxed">
             {renderContentWithHashtags(post.content)}
           </p>
+          {post.imageUrl && (
+            <div className="mb-3">
+              <Image
+                src={post.imageUrl}
+                alt="post image"
+                width={480}
+                height={320}
+                className="rounded-xl object-cover max-h-72 w-auto border border-border"
+              />
+            </div>
+          )}
         </Link>
 
         {/* Translated content */}

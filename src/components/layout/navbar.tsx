@@ -103,6 +103,10 @@ export function Navbar() {
                     {t.nav.admin}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem render={<Link href="/account" />}>
+                  {t.nav.settings}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="cursor-pointer"
@@ -194,6 +198,14 @@ export function Navbar() {
                         <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#ddd3f1]"
+                      nativeButton={false}
+                      render={<Link href="/account" onClick={() => setOpen(false)} />}
+                    >
+                      {t.nav.settings}
+                    </Button>
                     <Button
                       variant="outline"
                       className="w-full border-[#ddd3f1]"

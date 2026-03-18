@@ -75,6 +75,7 @@ model VerificationToken {
 model TreeholePost {
   id          String        @id @default(cuid())
   content     String
+  imageUrl    String?
   isAnonymous Boolean       @default(false)
   status      ContentStatus @default(PUBLISHED)
   authorId    String
