@@ -15,7 +15,9 @@ services:
       retries: 10
 
   app:
-    build: .
+    # Use pre-built image from GitHub Container Registry (built by GitHub Actions)
+    # This avoids running npm build on the server (too memory-intensive for 2GB VPS)
+    image: ghcr.io/highplayerjason-max/nyu-treehole:latest
     restart: unless-stopped
     ports:
       - "${PORT:-80}:3000"
