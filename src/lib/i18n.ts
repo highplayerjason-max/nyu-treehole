@@ -33,6 +33,10 @@ export const translations = {
       ],
       comingSoon: "即将上线",
       footer: "NYU树洞 · 学生社区平台",
+      introHeading: "为什么是树洞？",
+      introBody:
+        "大学是迷茫与成长并行的时期。树洞让你说出那些无处安放的话，遇见有共鸣的同学，分享真实的课程经历，记录属于自己的故事。",
+      introValues: ["匿名安全", "AI 智能审核", "开放自由讨论"],
     },
     treehole: {
       title: "树洞",
@@ -84,6 +88,7 @@ export const translations = {
       translated: "已翻译",
     },
     sidebar: {
+      home: "首页",
       trending: "热门话题",
       noTags: "暂无热门话题",
       navigation: "导航",
@@ -139,6 +144,10 @@ export const translations = {
       ],
       comingSoon: "Coming Soon",
       footer: "NYU Treehole · Student Community",
+      introHeading: "Why Treehole?",
+      introBody:
+        "College is a time of growth and uncertainty. Treehole gives your unspoken thoughts a place to land — meet students who get it, share real course experiences, and tell your own story.",
+      introValues: ["Anonymous & Safe", "AI Moderated", "Open Discussion"],
     },
     treehole: {
       title: "Treehole",
@@ -190,6 +199,7 @@ export const translations = {
       translated: "Translated",
     },
     sidebar: {
+      home: "Home",
       trending: "Trending Topics",
       noTags: "No trending topics yet",
       navigation: "Navigation",

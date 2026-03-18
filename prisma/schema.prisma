@@ -97,9 +97,10 @@ model TreeholeComment {
 }
 
 model Hashtag {
-  id    String          @id @default(cuid())
-  name  String          @unique
-  posts HashtagOnPost[]
+  id       String          @id @default(cuid())
+  name     String          @unique
+  isBanned Boolean         @default(false)
+  posts    HashtagOnPost[]
 }
 
 model HashtagOnPost {

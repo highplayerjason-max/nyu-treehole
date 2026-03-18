@@ -98,6 +98,19 @@ export async function POST(req: NextRequest) {
       ),
     ];
 
+    // Filter out banned hashtags; allow new ones (upsert) but block existing banned ones
+    const allowedHashtagIds: string[] = [];
+    for (const name of hashtagNames) {
+      const existing = await prisma.hashtag.findUnique({ where: { name } });
+      if (existing?.isBanned) continue; // skip banned tags
+      const hashtag = await prisma.hashtag.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      });
+      allowedHashtagIds.push(hashtag.id);
+    }
+
     const post = await prisma.treeholePost.create({
       data: {
         content,
@@ -105,16 +118,7 @@ export async function POST(req: NextRequest) {
         status,
         authorId: session.user.id,
         hashtags: {
-          create: await Promise.all(
-            hashtagNames.map(async (name) => {
-              const hashtag = await prisma.hashtag.upsert({
-                where: { name },
-                update: {},
-                create: { name },
-              });
-              return { hashtagId: hashtag.id };
-            })
-          ),
+          create: allowedHashtagIds.map((hashtagId) => ({ hashtagId })),
         },
       },
       include: {

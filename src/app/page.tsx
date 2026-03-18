@@ -52,6 +52,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Intro strip */}
+      <section className="py-12 px-4 bg-secondary/40">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-xl font-bold mb-3">{t.home.introHeading}</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl mb-5">
+            {t.home.introBody}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {(t.home.introValues as readonly string[]).map((v) => (
+              <span
+                key={v}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#ddd3f1] bg-card px-3 py-1 text-xs font-medium"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#7c3aed]" />
+                {v}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="py-10 px-4">
         <div className="container mx-auto max-w-4xl">

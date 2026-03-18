@@ -26,6 +26,7 @@ export function Sidebar() {
   }, []);
 
   const navLinks = [
+    { href: "/", label: t.sidebar.home },
     { href: "/treehole", label: t.nav.treehole },
     { href: "/blog", label: t.nav.blog },
     { href: "/courses", label: t.nav.courses },
