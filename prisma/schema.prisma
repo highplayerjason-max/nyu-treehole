@@ -48,6 +48,7 @@ model User {
 
   posts          TreeholePost[]
   comments       TreeholeComment[]
+  blogComments   BlogComment[]
   likes          Like[]
   reports        Report[]         @relation("ReportedBy")
   articles       BlogArticle[]
@@ -129,12 +130,25 @@ model BlogArticle {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  tags    TagOnArticle[]
-  reports Report[]
+  tags     TagOnArticle[]
+  reports  Report[]
+  comments BlogComment[]
 
   @@index([slug])
   @@index([authorId])
   @@index([status, createdAt])
+}
+
+model BlogComment {
+  id        String      @id @default(cuid())
+  content   String
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id])
+  articleId String
+  article   BlogArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@index([articleId, createdAt])
 }
 
 model BlogSeries {

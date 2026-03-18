@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReportButton } from "@/components/shared/report-button";
+import { BlogCommentSection } from "@/components/blog/blog-comment-section";
 import Link from "next/link";
 
 interface ArticleDetail {
@@ -146,6 +147,8 @@ export default function BlogArticlePage({
         <div className="flex items-center gap-2">
           <ReportButton contentType="article" contentId={article.slug} />
         </div>
+
+        <BlogCommentSection slug={slug} />
       </article>
     </div>
   );

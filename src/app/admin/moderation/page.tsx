@@ -19,6 +19,7 @@ interface ModerationItem {
   content: string;
   author: { displayName: string; email: string };
   reportCount: number;
+  status: string;
   createdAt: string;
 }
 
@@ -106,6 +107,9 @@ export default function AdminModerationPage() {
                       <Badge variant="outline">
                         {typeLabels[item.type] || item.type}
                       </Badge>
+                      {item.status === "FLAGGED" && (
+                        <Badge variant="destructive">已自动标记</Badge>
+                      )}
                       {item.reportCount > 0 && (
                         <Badge variant="destructive">
                           {item.reportCount} 次举报

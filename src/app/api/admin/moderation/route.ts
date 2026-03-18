@@ -18,12 +18,21 @@ export async function GET(req: NextRequest) {
     content: string;
     author: { displayName: string; email: string };
     reportCount: number;
+    status: string;
     createdAt: Date;
   }> = [];
 
+  // Show content that is FLAGGED or has at least 1 report
+  const moderationWhere = {
+    OR: [
+      { status: ContentStatus.FLAGGED },
+      { reports: { some: {} } },
+    ],
+  };
+
   if (type === "all" || type === "post") {
     const posts = await prisma.treeholePost.findMany({
-      where: { status: ContentStatus.FLAGGED },
+      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
       include: {
         author: { select: { displayName: true, email: true } },
         _count: { select: { reports: true } },
@@ -37,6 +46,7 @@ export async function GET(req: NextRequest) {
         content: p.content,
         author: p.author,
         reportCount: p._count.reports,
+        status: p.status,
         createdAt: p.createdAt,
       })
     );
@@ -44,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "all" || type === "comment") {
     const comments = await prisma.treeholeComment.findMany({
-      where: { status: ContentStatus.FLAGGED },
+      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
       include: {
         author: { select: { displayName: true, email: true } },
         _count: { select: { reports: true } },
@@ -58,6 +68,7 @@ export async function GET(req: NextRequest) {
         content: c.content,
         author: c.author,
         reportCount: c._count.reports,
+        status: c.status,
         createdAt: c.createdAt,
       })
     );
@@ -65,7 +76,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "all" || type === "article") {
     const articles = await prisma.blogArticle.findMany({
-      where: { status: ContentStatus.FLAGGED },
+      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
       include: {
         author: { select: { displayName: true, email: true } },
         _count: { select: { reports: true } },
@@ -76,16 +87,16 @@ export async function GET(req: NextRequest) {
       items.push({
         id: a.id,
         type: "BLOG_ARTICLE",
-        content: `[${a.title}] ${a.content.slice(0, 200)}`,
+        content: `[${a.title}] ${a.content.replace(/<[^>]*>/g, "").slice(0, 200)}`,
         author: a.author,
         reportCount: a._count.reports,
+        status: a.status,
         createdAt: a.createdAt,
       })
     );
   }
 
-  // Sort by creation date
   items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ items, total: items.length });
 }

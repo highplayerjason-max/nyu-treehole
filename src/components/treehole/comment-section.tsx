@@ -57,7 +57,7 @@ export function CommentSection({
       const res = await fetch(`/api/treehole/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, isAnonymous, parentId: replyTo }),
+        body: JSON.stringify({ content, isAnonymous, parentId: replyTo ?? undefined }),
       });
 
       const data = await res.json();

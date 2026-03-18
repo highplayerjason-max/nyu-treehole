@@ -20,6 +20,8 @@ export async function checkContent(text: string): Promise<ModerationResult> {
       return await checkWithOpenAI(text, apiKey);
     } else if (provider === "anthropic") {
       return await checkWithAnthropic(text, apiKey);
+    } else if (provider === "deepseek") {
+      return await checkWithDeepSeek(text, apiKey);
     }
     return { flagged: false };
   } catch (error) {
@@ -77,7 +79,7 @@ async function checkWithAnthropic(
       messages: [
         {
           role: "user",
-          content: `You are a content moderator. Analyze if the following text contains hate speech, harassment, violence, sexual content, self-harm, or other harmful content. Reply with JSON only: {"flagged": true/false, "reason": "brief reason if flagged"}\n\nText: ${text}`,
+          content: buildModerationPrompt(text),
         },
       ],
     }),
@@ -95,4 +97,45 @@ async function checkWithAnthropic(
   } catch {
     return { flagged: false };
   }
+}
+
+async function checkWithDeepSeek(
+  text: string,
+  apiKey: string
+): Promise<ModerationResult> {
+  const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      max_tokens: 100,
+      messages: [
+        {
+          role: "user",
+          content: buildModerationPrompt(text),
+        },
+      ],
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`DeepSeek moderation API error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "";
+
+  try {
+    return JSON.parse(content);
+  } catch {
+    return { flagged: false };
+  }
+}
+
+function buildModerationPrompt(text: string): string {
+  return `你是一个内容审核员。判断以下文字是否包含仇恨言论、骚扰、暴力、色情、自我伤害或其他有害内容。只回复 JSON：{"flagged": true/false, "reason": "如果标记则简述原因"}\n\n文字：${text}`;
 }
