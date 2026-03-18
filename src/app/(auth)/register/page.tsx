@@ -53,7 +53,8 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?registered=true");
+      // Redirect to verify-email page so user knows to check inbox
+      router.push("/verify-email");
     } catch {
       setError("注册失败，请稍后重试");
       setLoading(false);

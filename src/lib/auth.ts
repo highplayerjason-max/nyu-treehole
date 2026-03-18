@@ -30,6 +30,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!isValid) return null;
 
+        // Block login if email is not verified
+        if (!user.emailVerified) {
+          // Return a special marker so the login page can detect this case
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
         return {
           id: user.id,
           email: user.email,

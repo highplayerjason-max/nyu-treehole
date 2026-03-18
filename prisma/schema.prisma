@@ -36,24 +36,38 @@ enum ContentType {
 // ─── Auth & Users ───
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  displayName  String
-  role         Role     @default(USER)
-  isBanned     Boolean  @default(false)
-  avatarUrl    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  displayName   String
+  role          Role     @default(USER)
+  isBanned      Boolean  @default(false)
+  emailVerified Boolean  @default(false)
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  posts          TreeholePost[]
-  comments       TreeholeComment[]
-  blogComments   BlogComment[]
-  likes          Like[]
-  reports        Report[]         @relation("ReportedBy")
-  articles       BlogArticle[]
-  series         BlogSeries[]
-  moderationLogs ModerationLog[]  @relation("ModeratedBy")
+  posts               TreeholePost[]
+  comments            TreeholeComment[]
+  blogComments        BlogComment[]
+  likes               Like[]
+  reports             Report[]            @relation("ReportedBy")
+  articles            BlogArticle[]
+  series              BlogSeries[]
+  moderationLogs      ModerationLog[]     @relation("ModeratedBy")
+  verificationTokens  VerificationToken[]
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ─── TreeHole ───

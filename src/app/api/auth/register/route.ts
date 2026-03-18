@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validators";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,11 +34,27 @@ export async function POST(req: NextRequest) {
         email,
         passwordHash,
         displayName,
+        emailVerified: false,
       },
     });
 
+    // Create and send verification token (fire-and-forget; don't fail registration if email fails)
+    try {
+      const token = crypto.randomBytes(32).toString("hex");
+      await prisma.verificationToken.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+        },
+      });
+      await sendVerificationEmail(email, displayName, token);
+    } catch (emailErr) {
+      console.error("Failed to send verification email:", emailErr);
+    }
+
     return NextResponse.json(
-      { message: "注册成功", userId: user.id },
+      { message: "注册成功，请检查邮箱完成验证", userId: user.id },
       { status: 201 }
     );
   } catch (error) {
