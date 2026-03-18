@@ -19,7 +19,7 @@ interface ArticleDetail {
   slug: string;
   content: string;
   author: { id: string; displayName: string; avatarUrl?: string | null };
-  tags: { tag: { name: string } }[];
+  tags: { tag: { id: string; name: string } }[];
   series?: {
     title: string;
     articles: { id: string; title: string; slug: string; seriesOrder: number | null }[];
@@ -38,6 +38,7 @@ export default function BlogArticlePage({
   const { data: session } = useSession();
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -67,6 +68,35 @@ export default function BlogArticlePage({
 
   const isAuthor = session?.user?.id === article.author.id;
   const isAdmin = session?.user?.role === "ADMIN";
+
+  async function handleDeleteTag(tagId: string) {
+    if (!(isAuthor || isAdmin)) return;
+    if (!window.confirm("确认删除这个标签吗？")) return;
+
+    setDeletingTagId(tagId);
+    try {
+      const res = await fetch(`/api/blog/${slug}/tags/${tagId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        window.alert(data.error || "删除标签失败");
+        return;
+      }
+
+      setArticle((prev) =>
+        prev
+          ? {
+              ...prev,
+              tags: prev.tags.filter(({ tag }) => tag.id !== tagId),
+            }
+          : prev
+      );
+    } finally {
+      setDeletingTagId(null);
+    }
+  }
 
   return (
     <div className="container mx-auto max-w-3xl py-6 px-4">
@@ -128,9 +158,23 @@ export default function BlogArticlePage({
         {article.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-6">
             {article.tags.map(({ tag }) => (
-              <Link key={tag.name} href={`/blog?tag=${encodeURIComponent(tag.name)}`}>
-                <Badge variant="secondary">{tag.name}</Badge>
-              </Link>
+              <div key={tag.id} className="flex items-center gap-1">
+                <Link href={`/blog?tag=${encodeURIComponent(tag.name)}`}>
+                  <Badge variant="secondary">{tag.name}</Badge>
+                </Link>
+                {(isAuthor || isAdmin) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    disabled={deletingTagId === tag.id}
+                    onClick={() => handleDeleteTag(tag.id)}
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}
