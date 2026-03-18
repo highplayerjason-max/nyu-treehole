@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/language-context";
+import { toast } from "sonner";
 
 const featureColors = [
   "from-[#57068c] to-[#7c3aed]",
@@ -14,8 +18,23 @@ const featureColors = [
 const featureHrefs = ["/treehole", "/blog", "/courses"];
 const featureAvailable = [true, true, false];
 
-export default function HomePage() {
+export default function HomePageWrapper() {
+  return (
+    <Suspense>
+      <HomePage />
+    </Suspense>
+  );
+}
+
+function HomePage() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("error") === "unauthorized") {
+      toast.error("无权限访问管理后台");
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col">
