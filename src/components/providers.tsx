@@ -2,11 +2,14 @@
 
 import { SessionProvider } from "next-auth/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/language-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <TooltipProvider>{children}</TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </LanguageProvider>
     </SessionProvider>
   );
 }
