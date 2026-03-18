@@ -53,8 +53,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // Redirect to verify-email page so user knows to check inbox
-      router.push("/verify-email");
+      router.push("/login?registered=true");
     } catch {
       setError("注册失败，请稍后重试");
       setLoading(false);
@@ -92,11 +91,13 @@ export default function RegisterPage() {
               name="email"
               type="email"
               placeholder="netid@nyu.edu"
-              pattern=".*@nyu\.edu$"
+              pattern=".*@nyu\\.edu$"
               title="仅支持 NYU 邮箱（@nyu.edu）注册"
               required
             />
-            <p className="text-xs text-muted-foreground">仅限 NYU 学生（@nyu.edu 邮箱）注册</p>
+            <p className="text-xs text-muted-foreground">
+              仅限 NYU 学生（@nyu.edu 邮箱）注册
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">密码</Label>
