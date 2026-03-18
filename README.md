@@ -1,8 +1,8 @@
-# 学生社群 (Student Community)
+# NYU树洞 (NYU Treehole)
 
-一个面向学生群体的社群平台，集成了 **树洞**（匿名社交）、**博客**（文章发布）、**课评**（课程评价，开发中）三大功能模块。
+NYU学生社区平台，集成了 **树洞**（匿名社交）、**博客**（文章发布）、**课评**（课程评价，开发中）三大功能模块。
 
-**GitHub：** https://github.com/nazakinb123/student-community
+**GitHub：** https://github.com/highplayerjason-max/nyu-treehole
 
 ---
 
@@ -61,7 +61,7 @@
 **1. 克隆项目**
 
 ```bash
-git clone https://github.com/nazakinb123/student-community.git
+git clone https://github.com/highplayerjason-max/nyu-treehole.git
 cd student-community
 ```
 
@@ -171,7 +171,7 @@ systemctl daemon-reload && systemctl restart docker
 
 ```bash
 # 克隆代码
-git clone https://github.com/nazakinb123/student-community.git /opt/student-community
+git clone https://github.com/highplayerjason-max/nyu-treehole.git /opt/student-community
 cd /opt/student-community
 
 # 配置环境变量
@@ -219,7 +219,7 @@ docker compose exec db pg_dump -U postgres student_community > backup.sql
 ### 方式三：Docker 本地一键启动
 
 ```bash
-git clone https://github.com/nazakinb123/student-community.git
+git clone https://github.com/highplayerjason-max/nyu-treehole.git
 cd student-community
 cp .env.example .env
 docker compose up -d
