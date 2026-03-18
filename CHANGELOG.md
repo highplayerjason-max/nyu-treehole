@@ -15,11 +15,19 @@
 - recorded the two valid next directions: token-link verification or 6-digit
   code verification
 
+### Changed
+- removed the in-progress email-verification flow from the live auth path
+- registration now creates accounts that can log in directly again
+- kept the `@nyu.edu` registration restriction in place
+
+### Removed
+- removed `/verify-email` page from the active auth flow
+- removed resend-verification and verify-email API routes
+- removed login-time blocking for unverified email addresses
+
 ### Known issue
-- auth routes and verify endpoint still expect token-link verification
-- `src/lib/email.ts` is being adapted toward a code-based flow
-- until one approach is implemented end-to-end, email verification should be
-  treated as not production-ready
+- `src/lib/email.ts` is still being experimented on locally, but it is no longer
+  part of the active registration/login flow
 
 ## [0.4.0] - 2026-03-18
 

@@ -523,21 +523,16 @@ MIT
 
 ### Email Verification
 
-The repo already enforces `@nyu.edu` registration in both frontend and backend,
-and unverified users are blocked from login. However, the email verification
-feature is still in a mixed state and should be treated as work-in-progress.
+The repo still enforces `@nyu.edu` registration in both frontend and backend.
+The in-progress email-verification flow has been removed from the active auth
+path for now so registration and login work directly again.
 
-Current blocker:
-- some auth routes still expect token-link verification
-- `src/lib/email.ts` is being adapted toward a 6-digit code flow
-- the verify page and APIs are not yet unified around one single approach
-
-Recommended next step:
-1. choose one verification strategy only
-2. either keep token-link verification and make the mail sender match it
-3. or switch fully to a 6-digit code flow with hashed storage, expiry, resend cooldown, and a dedicated verify API
-
-Until that is finished, do not treat email verification as production-ready.
+Current state:
+- `@nyu.edu` restriction is still enabled
+- registration now creates accounts that can log in directly
+- `/verify-email` and related resend/verify routes are no longer used
+- `src/lib/email.ts` may still contain local experiments, but it is not part of
+  the live auth flow
 
 ### Git Hygiene
 
