@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { CreatePostForm } from "@/components/treehole/create-post-form";
 import { PostCard } from "@/components/treehole/post-card";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +29,15 @@ export default function TreeholePageWrapper() {
 }
 
 function TreeholePage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const hashtag = searchParams.get("hashtag");
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [deletingHashtag, setDeletingHashtag] = useState(false);
 
   const fetchPosts = useCallback(
     async (cursor?: string) => {
@@ -69,6 +73,29 @@ function TreeholePage() {
     setLoadingMore(false);
   }
 
+  async function handleDeleteHashtag() {
+    if (!hashtag || session?.user?.role !== "ADMIN") return;
+    if (!window.confirm(`确认全站删除话题 #${hashtag} 吗？`)) return;
+
+    setDeletingHashtag(true);
+    try {
+      const res = await fetch(
+        `/api/treehole/hashtags/${encodeURIComponent(hashtag)}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        window.alert(data.error || "删除标签失败");
+        return;
+      }
+
+      router.push("/treehole");
+    } finally {
+      setDeletingHashtag(false);
+    }
+  }
+
   return (
     <div className="container mx-auto max-w-2xl py-6 px-4">
       <div className="flex items-center justify-between mb-6">
@@ -81,6 +108,16 @@ function TreeholePage() {
         {hashtag && (
           <div className="flex items-center gap-2">
             <Badge variant="secondary">#{hashtag}</Badge>
+            {session?.user?.role === "ADMIN" && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteHashtag}
+                disabled={deletingHashtag}
+              >
+                {deletingHashtag ? "删除中..." : "删除标签"}
+              </Button>
+            )}
             <Link href="/treehole">
               <Button variant="ghost" size="sm">
                 清除筛选
