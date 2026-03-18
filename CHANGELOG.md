@@ -8,6 +8,19 @@
 
 ---
 
+### Documentation
+- documented the current email-verification blocker in `README.md`
+- clarified that `@nyu.edu` restriction already exists, but the verification
+  flow is still not unified
+- recorded the two valid next directions: token-link verification or 6-digit
+  code verification
+
+### Known issue
+- auth routes and verify endpoint still expect token-link verification
+- `src/lib/email.ts` is being adapted toward a code-based flow
+- until one approach is implemented end-to-end, email verification should be
+  treated as not production-ready
+
 ## [0.4.0] - 2026-03-18
 
 ### 新增
