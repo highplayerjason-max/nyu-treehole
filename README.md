@@ -516,3 +516,30 @@ docker compose ps        # 查看容器状态
 ## License
 
 MIT
+
+---
+
+## Status Note (2026-03-19)
+
+### Email Verification
+
+The repo already enforces `@nyu.edu` registration in both frontend and backend,
+and unverified users are blocked from login. However, the email verification
+feature is still in a mixed state and should be treated as work-in-progress.
+
+Current blocker:
+- some auth routes still expect token-link verification
+- `src/lib/email.ts` is being adapted toward a 6-digit code flow
+- the verify page and APIs are not yet unified around one single approach
+
+Recommended next step:
+1. choose one verification strategy only
+2. either keep token-link verification and make the mail sender match it
+3. or switch fully to a 6-digit code flow with hashed storage, expiry, resend cooldown, and a dedicated verify API
+
+Until that is finished, do not treat email verification as production-ready.
+
+### Git Hygiene
+
+`.gitignore` already ignores `.env*` while keeping `.env.example` committed as a
+template. Do not commit real SMTP credentials, API keys, or local build output.
