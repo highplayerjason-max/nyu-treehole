@@ -8,6 +8,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  connectionTimeout: 10000, // 10s
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 const FROM = process.env.SMTP_FROM || "NYU树洞 <noreply@nyutreehole.com>";

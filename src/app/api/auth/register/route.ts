@@ -38,20 +38,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create and send verification token (fire-and-forget; don't fail registration if email fails)
-    try {
-      const token = crypto.randomBytes(32).toString("hex");
-      await prisma.verificationToken.create({
-        data: {
-          userId: user.id,
-          token,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
-        },
-      });
-      await sendVerificationEmail(email, displayName, token);
-    } catch (emailErr) {
-      console.error("Failed to send verification email:", emailErr);
-    }
+    // Create verification token and send email (fire-and-forget — never blocks registration)
+    const token = crypto.randomBytes(32).toString("hex");
+    await prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+      },
+    });
+    // Don't await — email sending runs in background so registration returns immediately
+    sendVerificationEmail(email, displayName, token).catch((err) =>
+      console.error("Failed to send verification email:", err)
+    );
 
     return NextResponse.json(
       { message: "注册成功，请检查邮箱完成验证", userId: user.id },
