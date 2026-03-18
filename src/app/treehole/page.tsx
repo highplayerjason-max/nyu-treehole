@@ -17,6 +17,13 @@ interface Post {
   hashtags: { hashtag: { id: string; name: string } }[];
   _count: { comments: number; likes: number };
   createdAt: string;
+  comments: {
+    id: string;
+    content: string;
+    isAnonymous: boolean;
+    createdAt: string;
+    author: { id: string; displayName: string } | null;
+  }[];
 }
 
 export default function TreeholePageWrapper() {

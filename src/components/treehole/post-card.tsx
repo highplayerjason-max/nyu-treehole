@@ -7,6 +7,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LikeButton } from "@/components/shared/like-button";
 import { ReportButton } from "@/components/shared/report-button";
 
+interface CommentPreview {
+  id: string;
+  content: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  author: { id: string; displayName: string } | null;
+}
+
 interface PostCardProps {
   post: {
     id: string;
@@ -16,6 +24,7 @@ interface PostCardProps {
     hashtags: { hashtag: { id: string; name: string } }[];
     _count: { comments: number; likes: number };
     createdAt: string;
+    comments?: CommentPreview[];
   };
 }
 
@@ -43,7 +52,7 @@ function renderContentWithHashtags(content: string) {
         <Link
           key={i}
           href={`/treehole?hashtag=${encodeURIComponent(tag)}`}
-          className="text-blue-500 hover:underline"
+          className="text-[#7c3aed] hover:underline"
         >
           {part}
         </Link>
@@ -54,13 +63,16 @@ function renderContentWithHashtags(content: string) {
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const previewComments = post.comments?.slice(0, 3) ?? [];
+  const hasMoreComments = post._count.comments > previewComments.length;
+
   return (
     <Card className="transition-shadow hover:shadow-md">
       <CardContent className="pt-4">
         {/* Author info */}
         <div className="flex items-center gap-2 mb-3">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
+            <AvatarFallback className="text-xs bg-[#ddd3f1] text-[#57068c]">
               {post.author ? post.author.displayName.charAt(0) : "匿"}
             </AvatarFallback>
           </Avatar>
@@ -76,7 +88,7 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Content */}
         <Link href={`/treehole/${post.id}`} className="block">
-          <p className="text-sm whitespace-pre-wrap break-words mb-3">
+          <p className="text-sm whitespace-pre-wrap break-words mb-3 leading-relaxed">
             {renderContentWithHashtags(post.content)}
           </p>
         </Link>
@@ -98,7 +110,7 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1 -ml-2">
+        <div className="flex items-center gap-1 -ml-2 mb-3">
           <LikeButton postId={post.id} initialCount={post._count.likes} />
           <Link href={`/treehole/${post.id}`}>
             <button className="inline-flex items-center h-8 px-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -110,6 +122,29 @@ export function PostCard({ post }: PostCardProps) {
           </Link>
           <ReportButton contentType="post" contentId={post.id} />
         </div>
+
+        {/* Comment preview */}
+        {previewComments.length > 0 && (
+          <Link href={`/treehole/${post.id}`} className="block">
+            <div className="rounded-xl bg-secondary/60 px-3 py-2 space-y-1.5">
+              {previewComments.map((c) => (
+                <div key={c.id} className="flex gap-1.5 items-baseline min-w-0">
+                  <span className="text-xs font-medium text-[#57068c] shrink-0">
+                    {c.author ? c.author.displayName : "匿名"}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {c.content}
+                  </span>
+                </div>
+              ))}
+              {hasMoreComments && (
+                <p className="text-xs text-muted-foreground/70">
+                  查看全部 {post._count.comments} 条评论 →
+                </p>
+              )}
+            </div>
+          </Link>
+        )}
       </CardContent>
     </Card>
   );

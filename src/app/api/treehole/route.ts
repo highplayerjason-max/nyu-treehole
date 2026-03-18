@@ -28,17 +28,33 @@ export async function GET(req: NextRequest) {
       author: { select: { id: true, displayName: true, avatarUrl: true } },
       hashtags: { include: { hashtag: true } },
       _count: { select: { comments: true, likes: true, reports: true } },
+      comments: {
+        where: { status: ContentStatus.PUBLISHED, parentId: null },
+        orderBy: { createdAt: "asc" },
+        take: 3,
+        select: {
+          id: true,
+          content: true,
+          isAnonymous: true,
+          createdAt: true,
+          author: { select: { id: true, displayName: true } },
+        },
+      },
     },
   });
 
   const hasMore = posts.length > limit;
   const items = hasMore ? posts.slice(0, limit) : posts;
 
-  // Strip author info for anonymous posts
+  // Strip author info for anonymous posts/comments
   const sanitized = items.map((post) => ({
     ...post,
     author: post.isAnonymous ? null : post.author,
     authorId: post.isAnonymous ? null : post.authorId,
+    comments: post.comments.map((c) => ({
+      ...c,
+      author: c.isAnonymous ? null : c.author,
+    })),
   }));
 
   return NextResponse.json({
