@@ -35,14 +35,19 @@ async function checkWithOpenAI(
   text: string,
   apiKey: string
 ): Promise<ModerationResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+
   const res = await fetch("https://api.openai.com/v1/moderations", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ input: text }),
   });
+  clearTimeout(timer);
 
   if (!res.ok) {
     throw new Error(`OpenAI moderation API error: ${res.status}`);
@@ -66,8 +71,12 @@ async function checkWithAnthropic(
   text: string,
   apiKey: string
 ): Promise<ModerationResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       "x-api-key": apiKey,
       "content-type": "application/json",
@@ -84,6 +93,7 @@ async function checkWithAnthropic(
       ],
     }),
   });
+  clearTimeout(timer);
 
   if (!res.ok) {
     throw new Error(`Anthropic moderation API error: ${res.status}`);
@@ -103,8 +113,12 @@ async function checkWithDeepSeek(
   text: string,
   apiKey: string
 ): Promise<ModerationResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000); // 8s hard timeout
+
   const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
@@ -121,6 +135,7 @@ async function checkWithDeepSeek(
       response_format: { type: "json_object" },
     }),
   });
+  clearTimeout(timer);
 
   if (!res.ok) {
     throw new Error(`DeepSeek moderation API error: ${res.status}`);

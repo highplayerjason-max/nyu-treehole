@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { treeholePostSchema } from "@/lib/validators";
 import { checkContent } from "@/lib/moderation";
+import { isRateLimited } from "@/lib/rate-limit";
 import { ContentStatus } from "@prisma/client";
 
 // GET /api/treehole - List posts with cursor-based pagination
@@ -28,17 +29,33 @@ export async function GET(req: NextRequest) {
       author: { select: { id: true, displayName: true, avatarUrl: true } },
       hashtags: { include: { hashtag: true } },
       _count: { select: { comments: true, likes: true, reports: true } },
+      comments: {
+        where: { status: ContentStatus.PUBLISHED, parentId: null },
+        orderBy: { createdAt: "asc" },
+        take: 3,
+        select: {
+          id: true,
+          content: true,
+          isAnonymous: true,
+          createdAt: true,
+          author: { select: { id: true, displayName: true } },
+        },
+      },
     },
   });
 
   const hasMore = posts.length > limit;
   const items = hasMore ? posts.slice(0, limit) : posts;
 
-  // Strip author info for anonymous posts
+  // Strip author info for anonymous posts/comments
   const sanitized = items.map((post) => ({
     ...post,
     author: post.isAnonymous ? null : post.author,
     authorId: post.isAnonymous ? null : post.authorId,
+    comments: post.comments.map((c) => ({
+      ...c,
+      author: c.isAnonymous ? null : c.author,
+    })),
   }));
 
   return NextResponse.json({
@@ -54,6 +71,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "请先登录" }, { status: 401 });
   }
 
+  // Rate limit: 1 post/comment/article per minute
+  if (await isRateLimited(session.user.id)) {
+    return NextResponse.json(
+      { error: "发布太频繁了，请稍等一分钟再试" },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await req.json();
     const parsed = treeholePostSchema.safeParse(body);
@@ -65,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { content, isAnonymous } = parsed.data;
+    const { content, isAnonymous, imageUrl } = parsed.data;
 
     // LLM moderation check
     const modResult = await checkContent(content);
@@ -82,23 +107,28 @@ export async function POST(req: NextRequest) {
       ),
     ];
 
+    // Filter out banned hashtags; allow new ones (upsert) but block existing banned ones
+    const allowedHashtagIds: string[] = [];
+    for (const name of hashtagNames) {
+      const existing = await prisma.hashtag.findUnique({ where: { name } });
+      if (existing?.isBanned) continue; // skip banned tags
+      const hashtag = await prisma.hashtag.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      });
+      allowedHashtagIds.push(hashtag.id);
+    }
+
     const post = await prisma.treeholePost.create({
       data: {
         content,
+        imageUrl: imageUrl || null,
         isAnonymous,
         status,
         authorId: session.user.id,
         hashtags: {
-          create: await Promise.all(
-            hashtagNames.map(async (name) => {
-              const hashtag = await prisma.hashtag.upsert({
-                where: { name },
-                update: {},
-                create: { name },
-              });
-              return { hashtagId: hashtag.id };
-            })
-          ),
+          create: allowedHashtagIds.map((hashtagId) => ({ hashtagId })),
         },
       },
       include: {

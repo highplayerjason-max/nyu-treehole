@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -9,14 +10,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { RichTextEditor } from "@/components/blog/rich-text-editor";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/language-context";
 
 export default function NewArticlePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [isDraft, setIsDraft] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleCoverImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t.upload.tooLarge);
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error(t.upload.wrongType);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t.upload.wrongType);
+      } else {
+        setCoverImage(data.url);
+      }
+    } catch {
+      toast.error("上传失败");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,9 +72,10 @@ export default function NewArticlePage() {
         body: JSON.stringify({
           title,
           content,
+          coverImage: coverImage ?? "",
           tags: tags
             .split(",")
-            .map((t) => t.trim())
+            .map((tag) => tag.trim())
             .filter(Boolean),
           isDraft,
         }),
@@ -76,6 +116,60 @@ export default function NewArticlePage() {
             <div className="space-y-2">
               <Label>内容</Label>
               <RichTextEditor content={content} onChange={setContent} />
+            </div>
+
+            {/* Cover image upload */}
+            <div className="space-y-2">
+              <Label>{t.upload.coverImage}</Label>
+              {coverImage ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={coverImage}
+                    alt="cover"
+                    width={320}
+                    height={180}
+                    className="rounded-lg object-cover border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage(null)}
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-[#7c3aed] hover:text-[#7c3aed] transition-colors disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      {t.upload.uploading}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {t.upload.addImage}
+                    </>
+                  )}
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleCoverImageSelect}
+              />
             </div>
 
             <div className="space-y-2">

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -15,8 +15,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export default function LoginPageWrapper() {
+  return (
+    <Suspense>
+      <LoginPage />
+    </Suspense>
+  );
+}
+
+function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +61,11 @@ export default function LoginPage() {
         <CardDescription>登录你的学生社群账号</CardDescription>
       </CardHeader>
       <CardContent>
+        {searchParams.get("registered") === "true" && (
+          <div className="mb-4 rounded-lg bg-[#f5f0fb] p-3 text-sm text-[#57068c] text-center">
+            注册成功！现在可以直接登录了
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">

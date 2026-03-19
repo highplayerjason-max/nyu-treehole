@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { blogArticleSchema } from "@/lib/validators";
 import { checkContent } from "@/lib/moderation";
+import { isRateLimited } from "@/lib/rate-limit";
 import { ContentStatus } from "@prisma/client";
 import slugify from "slugify";
 
@@ -55,6 +56,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+
+  // Rate limit: 1 post/comment/article per minute
+  if (await isRateLimited(session.user.id)) {
+    return NextResponse.json(
+      { error: "发布太频繁了，请稍等一分钟再试" },
+      { status: 429 }
+    );
   }
 
   try {

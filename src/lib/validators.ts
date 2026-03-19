@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  email: z.string().email("请输入有效的邮箱地址"),
+  email: z
+    .string()
+    .email("请输入有效的邮箱地址")
+    .endsWith("@nyu.edu", "仅支持 NYU 邮箱（@nyu.edu）注册"),
   password: z.string().min(6, "密码至少6个字符"),
   displayName: z
     .string()
@@ -19,6 +22,7 @@ export const treeholePostSchema = z.object({
     .string()
     .min(1, "内容不能为空")
     .max(2000, "内容最多2000个字符"),
+  imageUrl: z.string().url().optional().or(z.literal("")),
   isAnonymous: z.boolean().default(false),
 });
 

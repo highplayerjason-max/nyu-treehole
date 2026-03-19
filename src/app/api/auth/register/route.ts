@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
         email,
         passwordHash,
         displayName,
+        emailVerified: true,
       },
     });
 
