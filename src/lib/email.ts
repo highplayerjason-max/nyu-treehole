@@ -8,25 +8,28 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  connectionTimeout: 10000, // 10s
+  connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 15000,
 });
 
 const FROM = process.env.SMTP_FROM || "NYU树洞 <noreply@nyutreehole.com>";
-const APP_URL = process.env.AUTH_URL || "http://localhost:3000";
 
-export async function sendVerificationEmail(
+/** Generate a random 6-digit verification code */
+export function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/** Send a 6-digit verification code to the user's email */
+export async function sendVerificationCode(
   to: string,
   displayName: string,
-  token: string
+  code: string
 ) {
-  const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
-
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: "【NYU树洞】请验证你的邮箱",
+    subject: `【NYU树洞】你的验证码：${code}`,
     html: `
 <!DOCTYPE html>
 <html lang="zh">
@@ -39,19 +42,16 @@ export async function sendVerificationEmail(
     </div>
     <div style="padding:40px">
       <p style="color:#111;font-size:16px;margin:0 0 8px">Hi，<strong>${displayName}</strong></p>
-      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 28px">
-        感谢注册 NYU树洞！点击下方按钮验证你的邮箱，完成账号激活。
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 24px">
+        你的邮箱验证码如下，请在 10 分钟内输入完成验证：
       </p>
-      <div style="text-align:center;margin-bottom:28px">
-        <a href="${verifyUrl}"
-           style="display:inline-block;background:linear-gradient(135deg,#57068c,#7c3aed);color:#fff;text-decoration:none;padding:14px 36px;border-radius:100px;font-size:15px;font-weight:600;letter-spacing:0.2px">
-          验证邮箱
-        </a>
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="display:inline-block;background:#f5f0fb;border:2px solid #7c3aed;border-radius:12px;padding:16px 40px;font-size:32px;font-weight:700;letter-spacing:8px;color:#57068c;font-family:monospace">
+          ${code}
+        </div>
       </div>
       <p style="color:#999;font-size:12px;line-height:1.6;margin:0">
-        此链接 <strong>24小时</strong> 内有效。若非本人操作，请忽略此邮件。<br>
-        无法点击按钮？复制下方链接粘贴到浏览器：<br>
-        <span style="color:#7c3aed;word-break:break-all">${verifyUrl}</span>
+        验证码 <strong>10 分钟</strong>内有效。若非本人操作，请忽略此邮件。
       </p>
     </div>
     <div style="background:#f5f0fb;padding:16px 40px;text-align:center">
@@ -60,6 +60,6 @@ export async function sendVerificationEmail(
   </div>
 </body>
 </html>`,
-    text: `Hi ${displayName}，\n\n请访问以下链接验证你的邮箱（24小时有效）：\n${verifyUrl}\n\n若非本人操作，请忽略此邮件。\n\nNYU树洞`,
+    text: `Hi ${displayName}，\n\n你的验证码是：${code}\n\n验证码10分钟内有效。若非本人操作，请忽略此邮件。\n\nNYU树洞`,
   });
 }
