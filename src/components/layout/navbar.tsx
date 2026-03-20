@@ -47,10 +47,17 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 items-center px-4">
         {/* Logo */}
-        <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="text-xl font-bold bg-gradient-to-r from-[#57068c] to-[#7c3aed] bg-clip-text text-transparent">
-            {t.home.title}
-          </span>
+        <Link href="/" className="mr-6 flex items-center">
+          {/* Deliberately use a static SVG file with a plain img to avoid runtime image processing. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/treehole-logo.svg"
+            alt={lang === "zh" ? "树洞 Logo" : "Treehole logo"}
+            width="156"
+            height="66"
+            className="h-9 w-auto sm:h-10"
+            decoding="async"
+          />
         </Link>
 
         {/* Desktop Nav */}
@@ -161,9 +168,18 @@ export function Navbar() {
                 <Link
                   href="/"
                   onClick={() => setOpen(false)}
-                  className="text-xl font-bold bg-gradient-to-r from-[#57068c] to-[#7c3aed] bg-clip-text text-transparent"
+                  className="inline-flex items-center"
                 >
-                  {t.home.title}
+                  {/* Deliberately use a static SVG file with a plain img to avoid runtime image processing. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/treehole-logo.svg"
+                    alt={lang === "zh" ? "树洞 Logo" : "Treehole logo"}
+                    width="156"
+                    height="66"
+                    className="h-10 w-auto"
+                    decoding="async"
+                  />
                 </Link>
               </div>
 
