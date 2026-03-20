@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     orderBy: { createdAt: "desc" },
     include: {
-      author: { select: { id: true, displayName: true, avatarUrl: true } },
+      author: { select: { id: true, displayName: true } },
       hashtags: { include: { hashtag: true } },
       _count: { select: { comments: true, likes: true, reports: true } },
       comments: {
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         },
       },
       include: {
-        author: { select: { id: true, displayName: true, avatarUrl: true } },
+        author: { select: { id: true, displayName: true } },
         hashtags: { include: { hashtag: true } },
         _count: { select: { comments: true, likes: true } },
       },

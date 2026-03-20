@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { buildLocalUploadUrl, getUploadsRoot } from "@/lib/uploads";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -51,9 +52,9 @@ export async function POST(req: NextRequest) {
   const ext = extMap[file.type] ?? "jpg";
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  const uploadDir = join(process.cwd(), "public", "uploads");
+  const uploadDir = getUploadsRoot();
   await mkdir(uploadDir, { recursive: true });
   await writeFile(join(uploadDir, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: buildLocalUploadUrl(filename) });
 }

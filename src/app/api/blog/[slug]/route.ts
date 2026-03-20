@@ -14,7 +14,7 @@ export async function GET(
   const article = await prisma.blogArticle.findUnique({
     where: { slug },
     include: {
-      author: { select: { id: true, displayName: true, avatarUrl: true } },
+      author: { select: { id: true, displayName: true } },
       tags: { include: { tag: true } },
       series: {
         include: {

@@ -13,14 +13,14 @@ export async function GET(
   const post = await prisma.treeholePost.findUnique({
     where: { id },
     include: {
-      author: { select: { id: true, displayName: true, avatarUrl: true } },
+      author: { select: { id: true, displayName: true } },
       hashtags: { include: { hashtag: true } },
       comments: {
         where: { status: ContentStatus.PUBLISHED },
         orderBy: { createdAt: "asc" },
         include: {
           author: {
-            select: { id: true, displayName: true, avatarUrl: true },
+            select: { id: true, displayName: true },
           },
         },
       },

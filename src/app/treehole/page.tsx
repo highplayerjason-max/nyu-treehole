@@ -15,7 +15,7 @@ interface Post {
   id: string;
   content: string;
   isAnonymous: boolean;
-  author: { id: string; displayName: string; avatarUrl?: string | null } | null;
+  author: { id: string; displayName: string } | null;
   hashtags: { hashtag: { id: string; name: string } }[];
   _count: { comments: number; likes: number };
   createdAt: string;

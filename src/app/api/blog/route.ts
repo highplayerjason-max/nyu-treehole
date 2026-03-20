@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        author: { select: { id: true, displayName: true, avatarUrl: true } },
+        author: { select: { id: true, displayName: true } },
         tags: { include: { tag: true } },
         series: { select: { id: true, title: true } },
       },

@@ -60,7 +60,7 @@ export async function POST(
         parentId: parentId || null,
       },
       include: {
-        author: { select: { id: true, displayName: true, avatarUrl: true } },
+        author: { select: { id: true, displayName: true } },
       },
     });
 

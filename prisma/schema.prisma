@@ -43,19 +43,18 @@ model User {
   displayName   String
   role          Role     @default(USER)
   isBanned      Boolean  @default(false)
-  avatarUrl     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  posts               TreeholePost[]
-  comments            TreeholeComment[]
-  blogComments        BlogComment[]
-  likes               Like[]
-  reports             Report[]            @relation("ReportedBy")
-  articles            BlogArticle[]
-  series              BlogSeries[]
+  posts                   TreeholePost[]
+  comments                TreeholeComment[]
+  blogComments            BlogComment[]
+  likes                   Like[]
+  reports                 Report[]                 @relation("ReportedBy")
+  articles                BlogArticle[]
+  series                  BlogSeries[]
   emailVerificationTokens EmailVerificationToken[]
-  moderationLogs      ModerationLog[]     @relation("ModeratedBy")
+  moderationLogs          ModerationLog[]          @relation("ModeratedBy")
 }
 
 model EmailVerificationToken {

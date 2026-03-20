@@ -18,7 +18,7 @@ interface ArticleDetail {
   title: string;
   slug: string;
   content: string;
-  author: { id: string; displayName: string; avatarUrl?: string | null };
+  author: { id: string; displayName: string };
   tags: { tag: { id: string; name: string } }[];
   series?: {
     title: string;

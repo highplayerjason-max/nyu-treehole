@@ -1,19 +1,71 @@
 import { unlink } from "fs/promises";
-import { resolve, sep } from "path";
+import { extname, resolve, sep } from "path";
 
-function getLocalUploadPath(url: string) {
-  if (!url.startsWith("/uploads/")) {
+const UPLOADS_PREFIX = "/uploads/";
+
+export function getUploadsRoot() {
+  return resolve(process.cwd(), "public", "uploads");
+}
+
+export function buildLocalUploadUrl(filename: string) {
+  return `${UPLOADS_PREFIX}${filename}`;
+}
+
+export function isLocalUploadUrl(url: string) {
+  return url.startsWith(UPLOADS_PREFIX);
+}
+
+export function isAcceptedImageUrl(url: string) {
+  if (!url) {
+    return false;
+  }
+
+  if (isLocalUploadUrl(url)) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function getLocalUploadPath(url: string) {
+  if (!isLocalUploadUrl(url)) {
     return null;
   }
 
-  const uploadsRoot = resolve(process.cwd(), "public", "uploads");
-  const filePath = resolve(process.cwd(), "public", url.slice(1));
+  const uploadsRoot = getUploadsRoot();
+  const relativePath = url.slice(UPLOADS_PREFIX.length);
+  if (!relativePath || relativePath.includes("\0")) {
+    return null;
+  }
+
+  const filePath = resolve(uploadsRoot, relativePath);
 
   if (filePath !== uploadsRoot && !filePath.startsWith(`${uploadsRoot}${sep}`)) {
     return null;
   }
 
   return filePath;
+}
+
+export function getUploadContentType(urlOrPath: string) {
+  switch (extname(urlOrPath).toLowerCase()) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".gif":
+      return "image/gif";
+    case ".webp":
+      return "image/webp";
+    default:
+      return "application/octet-stream";
+  }
 }
 
 export async function deleteUploadedFiles(urls: Array<string | null | undefined>) {

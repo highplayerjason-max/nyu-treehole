@@ -8,7 +8,7 @@ interface ArticleCardProps {
     slug: string;
     title: string;
     excerpt?: string | null;
-    author: { displayName: string; avatarUrl?: string | null };
+    author: { displayName: string };
     tags: { tag: { name: string } }[];
     series?: { title: string } | null;
     createdAt: string;

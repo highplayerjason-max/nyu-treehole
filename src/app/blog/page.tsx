@@ -16,7 +16,7 @@ interface Article {
   slug: string;
   title: string;
   excerpt?: string | null;
-  author: { id: string; displayName: string; avatarUrl?: string | null };
+  author: { id: string; displayName: string };
   tags: { tag: { name: string } }[];
   series?: { title: string } | null;
   createdAt: string;
