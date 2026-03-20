@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="95 0 390 220" role="img" aria-labelledby="title desc">
+  <title id="title">Treehole mark</title>
+  <desc id="desc">Purple Treehole icon with abstract leaf shapes.</desc>
+  <defs>
+    <linearGradient id="treehole-mark-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6d28d9" />
+      <stop offset="100%" stop-color="#57068c" />
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#treehole-mark-gradient)">
+    <path d="M109 142c-11-36 3-72 39-116 4 19 13 36 27 52-22 33-28 62-17 88 7 18 23 33 49 44-54 0-88-21-98-68z" />
+    <path d="M197 198c-19-47-7-96 35-144 18-21 33-46 43-74 18 27 28 60 32 101 2 19-2 31-12 39-42 31-74 57-98 78-18 16-31 36-39 61 16-1 35-1 57-1-7-13-11-26-13-40-2-18 3-37 16-56 15-23 43-54 84-93 6 10 11 20 15 31 9 27 8 52-2 74-37 31-60 59-69 84-5 13-7 26-6 39h-21c-12-30-19-61-20-99z" />
+    <path d="M274 199c4-33 20-62 48-88 31-29 53-56 66-84 14 20 23 44 26 71 4 31-2 53-18 66-37 28-67 57-89 86-10 14-17 30-20 49h-13z" />
+    <path d="M315 198c16-35 43-64 82-89 31-19 56-44 75-76 4 16 5 33 4 52-2 48-18 80-48 96-30 16-68 22-113 17z" />
+  </g>
+
+  <path d="M167 95c0 17 13 30 30 30s30-13 30-30-13-30-30-30-30 13-30 30zm96 0c0 17 13 30 30 30s30-13 30-30-13-30-30-30-30 13-30 30z" fill="#fff" />
+</svg>

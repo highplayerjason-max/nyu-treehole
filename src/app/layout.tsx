@@ -6,7 +6,12 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "NYU树洞",
-  description: "匿名树洞 · 博客 · 课评 — NYU学生社区",
+  description: "匿名树洞 · 博客 · 课评 · NYU学生社区",
+  icons: {
+    icon: "/treehole-mark.svg?v=2",
+    shortcut: "/treehole-mark.svg?v=2",
+    apple: "/treehole-mark.svg?v=2",
+  },
 };
 
 export default function RootLayout({
