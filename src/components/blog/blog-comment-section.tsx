@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,16 @@ interface BlogComment {
 
 interface BlogCommentSectionProps {
   slug: string;
+}
+
+async function fetchCommentsForArticle(slug: string) {
+  const res = await fetch(`/api/blog/${slug}/comments`);
+  if (!res.ok) {
+    return [];
+  }
+
+  const data = await res.json();
+  return data.comments || [];
 }
 
 function formatTime(dateStr: string) {
@@ -37,17 +48,23 @@ export function BlogCommentSection({ slug }: BlogCommentSectionProps) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchComments = useCallback(async () => {
-    const res = await fetch(`/api/blog/${slug}/comments`);
-    if (res.ok) {
-      const data = await res.json();
-      setComments(data.comments || []);
-    }
-  }, [slug]);
-
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    let active = true;
+
+    async function loadComments() {
+      const nextComments = await fetchCommentsForArticle(slug);
+
+      if (!active) return;
+
+      setComments(nextComments);
+    }
+
+    void loadComments();
+
+    return () => {
+      active = false;
+    };
+  }, [slug]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,7 +84,8 @@ export function BlogCommentSection({ slug }: BlogCommentSectionProps) {
       } else {
         toast.success("评论成功");
         setContent("");
-        fetchComments();
+        const nextComments = await fetchCommentsForArticle(slug);
+        setComments(nextComments);
       }
     } catch {
       toast.error("评论失败");
@@ -98,7 +116,10 @@ export function BlogCommentSection({ slug }: BlogCommentSectionProps) {
         </form>
       ) : (
         <p className="text-sm text-muted-foreground py-2">
-          <a href="/login" className="text-primary hover:underline">登录</a> 后才能发表评论
+          <Link href="/login" className="text-primary hover:underline">
+            登录
+          </Link>{" "}
+          后才能发表评论
         </p>
       )}
 

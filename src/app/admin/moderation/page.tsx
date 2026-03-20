@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,17 +34,25 @@ export default function AdminModerationPage() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch(`/api/admin/moderation?type=${filter}`);
-    const data = await res.json();
-    setItems(data.items || []);
-    setLoading(false);
-  }, [filter]);
-
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    let active = true;
+
+    async function loadItems() {
+      const res = await fetch(`/api/admin/moderation?type=${filter}`);
+      const data = await res.json();
+
+      if (!active) return;
+
+      setItems(data.items || []);
+      setLoading(false);
+    }
+
+    void loadItems();
+
+    return () => {
+      active = false;
+    };
+  }, [filter]);
 
   async function handleAction(
     id: string,
@@ -74,7 +82,14 @@ export default function AdminModerationPage() {
             审核被举报或自动标记的内容
           </p>
         </div>
-        <Select value={filter} onValueChange={(v) => v && setFilter(v)}>
+        <Select
+          value={filter}
+          onValueChange={(v) => {
+            if (!v) return;
+            setLoading(true);
+            setFilter(v);
+          }}
+        >
           <SelectTrigger className="w-36">
             <SelectValue />
           </SelectTrigger>

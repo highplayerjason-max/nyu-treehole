@@ -15,6 +15,22 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useLanguage } from "@/contexts/language-context";
 
+type LangToggleButtonProps = {
+  lang: "zh" | "en";
+  setLang: (lang: "zh" | "en") => void;
+};
+
+function LangToggleButton({ lang, setLang }: LangToggleButtonProps) {
+  return (
+    <button
+      onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+      className="text-xs font-semibold px-2 py-1 rounded-md border border-[#ddd3f1] text-foreground/60 hover:text-foreground hover:bg-secondary transition-colors"
+    >
+      {lang === "zh" ? "EN" : "中"}
+    </button>
+  );
+}
+
 export function Navbar() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -26,15 +42,6 @@ export function Navbar() {
     { href: "/blog", label: t.nav.blog },
     { href: "/courses", label: t.nav.courses },
   ];
-
-  const LangToggle = () => (
-    <button
-      onClick={() => setLang(lang === "zh" ? "en" : "zh")}
-      className="text-xs font-semibold px-2 py-1 rounded-md border border-[#ddd3f1] text-foreground/60 hover:text-foreground hover:bg-secondary transition-colors"
-    >
-      {lang === "zh" ? "EN" : "中"}
-    </button>
-  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -71,7 +78,7 @@ export function Navbar() {
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center space-x-2">
-          <LangToggle />
+          <LangToggleButton lang={lang} setLang={setLang} />
           {session?.user ? (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -129,7 +136,7 @@ export function Navbar() {
 
         {/* Mobile: lang toggle + hamburger */}
         <div className="md:hidden flex items-center gap-2">
-          <LangToggle />
+          <LangToggleButton lang={lang} setLang={setLang} />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
               render={<Button variant="ghost" size="sm" />}

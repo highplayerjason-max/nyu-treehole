@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CreatePostForm } from "@/components/treehole/create-post-form";
 import { PostCard } from "@/components/treehole/post-card";
@@ -28,6 +28,15 @@ interface Post {
   }[];
 }
 
+async function fetchPostsPage(hashtag: string | null, cursor?: string) {
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  if (hashtag) params.set("hashtag", hashtag);
+
+  const res = await fetch(`/api/treehole?${params}`);
+  return res.json();
+}
+
 export default function TreeholePageWrapper() {
   return (
     <Suspense>
@@ -45,35 +54,38 @@ function TreeholePage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchPosts = useCallback(
-    async (cursor?: string) => {
-      const params = new URLSearchParams();
-      if (cursor) params.set("cursor", cursor);
-      if (hashtag) params.set("hashtag", hashtag);
+  useEffect(() => {
+    let active = true;
 
-      const res = await fetch(`/api/treehole?${params}`);
-      const data = await res.json();
-      return data;
-    },
-    [hashtag]
-  );
+    async function loadInitial() {
+      const data = await fetchPostsPage(hashtag);
 
-  const loadInitial = useCallback(async () => {
+      if (!active) return;
+
+      setPosts(data.posts || []);
+      setNextCursor(data.nextCursor);
+      setLoading(false);
+    }
+
+    void loadInitial();
+
+    return () => {
+      active = false;
+    };
+  }, [hashtag]);
+
+  async function refreshPosts() {
     setLoading(true);
-    const data = await fetchPosts();
+    const data = await fetchPostsPage(hashtag);
     setPosts(data.posts || []);
     setNextCursor(data.nextCursor);
     setLoading(false);
-  }, [fetchPosts]);
-
-  useEffect(() => {
-    loadInitial();
-  }, [loadInitial]);
+  }
 
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    const data = await fetchPosts(nextCursor);
+    const data = await fetchPostsPage(hashtag, nextCursor);
     setPosts((prev) => [...prev, ...(data.posts || [])]);
     setNextCursor(data.nextCursor);
     setLoadingMore(false);
@@ -104,7 +116,7 @@ function TreeholePage() {
           </div>
 
           <div className="space-y-4">
-            <CreatePostForm onPostCreated={loadInitial} />
+            <CreatePostForm onPostCreated={refreshPosts} />
 
             {loading ? (
               <div className="space-y-4">

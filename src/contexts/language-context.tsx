@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
 } from "react";
 import { type Lang, translations, type Translations } from "@/lib/i18n";
@@ -22,14 +21,14 @@ const LanguageContext = createContext<LanguageContextValue>({
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("zh");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("lang") as Lang | null;
-    if (stored === "zh" || stored === "en") {
-      setLangState(stored);
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") {
+      return "zh";
     }
-  }, []);
+
+    const stored = localStorage.getItem("lang");
+    return stored === "zh" || stored === "en" ? stored : "zh";
+  });
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);

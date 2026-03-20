@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -31,6 +31,14 @@ interface User {
   _count: { posts: number; articles: number; comments: number };
 }
 
+async function fetchUserRows(page: number, search: string) {
+  const params = new URLSearchParams({ page: page.toString() });
+  if (search) params.set("search", search);
+
+  const res = await fetch(`/api/admin/users?${params}`);
+  return res.json();
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
@@ -38,21 +46,25 @@ export default function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: page.toString() });
-    if (search) params.set("search", search);
-
-    const res = await fetch(`/api/admin/users?${params}`);
-    const data = await res.json();
-    setUsers(data.users || []);
-    setTotalPages(data.pages || 1);
-    setLoading(false);
-  }, [page, search]);
-
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    let active = true;
+
+    async function loadUsers() {
+      const data = await fetchUserRows(page, search);
+
+      if (!active) return;
+
+      setUsers(data.users || []);
+      setTotalPages(data.pages || 1);
+      setLoading(false);
+    }
+
+    void loadUsers();
+
+    return () => {
+      active = false;
+    };
+  }, [page, search]);
 
   async function updateUser(id: string, data: Record<string, unknown>) {
     const res = await fetch(`/api/admin/users/${id}`, {
@@ -63,7 +75,11 @@ export default function AdminUsersPage() {
 
     if (res.ok) {
       toast.success("操作成功");
-      fetchUsers();
+      setLoading(true);
+      const nextData = await fetchUserRows(page, search);
+      setUsers(nextData.users || []);
+      setTotalPages(nextData.pages || 1);
+      setLoading(false);
     } else {
       const err = await res.json();
       toast.error(err.error || "操作失败");
@@ -79,6 +95,7 @@ export default function AdminUsersPage() {
           placeholder="搜索用户（邮箱或昵称）"
           value={search}
           onChange={(e) => {
+            setLoading(true);
             setSearch(e.target.value);
             setPage(1);
           }}
@@ -170,7 +187,10 @@ export default function AdminUsersPage() {
             variant="outline"
             size="sm"
             disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
+            onClick={() => {
+              setLoading(true);
+              setPage(page - 1);
+            }}
           >
             上一页
           </Button>
@@ -181,7 +201,10 @@ export default function AdminUsersPage() {
             variant="outline"
             size="sm"
             disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
+            onClick={() => {
+              setLoading(true);
+              setPage(page + 1);
+            }}
           >
             下一页
           </Button>

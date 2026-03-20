@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,15 @@ interface TagRow {
   publishedCount: number;
 }
 
+async function fetchTagRows(search: string, filter: "all" | "active" | "banned") {
+  const params = new URLSearchParams({ filter });
+  if (search) params.set("search", search);
+
+  const res = await fetch(`/api/admin/tags?${params}`);
+  const data = await res.json();
+  return data.hashtags || [];
+}
+
 export default function AdminTagsPage() {
   const [tags, setTags] = useState<TagRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,19 +31,24 @@ export default function AdminTagsPage() {
   const [filter, setFilter] = useState<"all" | "active" | "banned">("all");
   const [actionId, setActionId] = useState<string | null>(null);
 
-  const fetchTags = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ filter });
-    if (search) params.set("search", search);
-    const res = await fetch(`/api/admin/tags?${params}`);
-    const data = await res.json();
-    setTags(data.hashtags || []);
-    setLoading(false);
-  }, [search, filter]);
-
   useEffect(() => {
-    fetchTags();
-  }, [fetchTags]);
+    let active = true;
+
+    async function loadTags() {
+      const nextTags = await fetchTagRows(search, filter);
+
+      if (!active) return;
+
+      setTags(nextTags);
+      setLoading(false);
+    }
+
+    void loadTags();
+
+    return () => {
+      active = false;
+    };
+  }, [search, filter]);
 
   async function handleBanToggle(tag: TagRow) {
     const next = !tag.isBanned;
@@ -51,7 +65,10 @@ export default function AdminTagsPage() {
     });
     if (res.ok) {
       toast.success(next ? `已屏蔽 #${tag.name}` : `已解除屏蔽 #${tag.name}`);
-      fetchTags();
+      setLoading(true);
+      const nextTags = await fetchTagRows(search, filter);
+      setTags(nextTags);
+      setLoading(false);
     } else {
       toast.error("操作失败");
     }
@@ -70,7 +87,10 @@ export default function AdminTagsPage() {
     const res = await fetch(`/api/admin/tags/${tag.id}`, { method: "DELETE" });
     if (res.ok) {
       toast.success(`已删除 #${tag.name}`);
-      fetchTags();
+      setLoading(true);
+      const nextTags = await fetchTagRows(search, filter);
+      setTags(nextTags);
+      setLoading(false);
     } else {
       toast.error("删除失败");
     }
@@ -132,7 +152,10 @@ export default function AdminTagsPage() {
         <Input
           placeholder="搜索标签..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setLoading(true);
+            setSearch(e.target.value);
+          }}
           className="max-w-xs"
         />
         <div className="flex gap-1">
@@ -141,7 +164,10 @@ export default function AdminTagsPage() {
               key={f}
               size="sm"
               variant={filter === f ? "default" : "outline"}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setLoading(true);
+                setFilter(f);
+              }}
             >
               {f === "all" ? "全部" : f === "active" ? "正常" : "已屏蔽"}
             </Button>

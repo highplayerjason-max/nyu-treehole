@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +31,16 @@ interface PostDetail {
   createdAt: string;
 }
 
+async function fetchPostDetail(id: string) {
+  const res = await fetch(`/api/treehole/${id}`);
+
+  if (!res.ok) {
+    throw new Error("POST_NOT_FOUND");
+  }
+
+  return res.json();
+}
+
 export default function TreeholePostPage({
   params,
 }: {
@@ -41,24 +51,34 @@ export default function TreeholePostPage({
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchPost = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/treehole/${id}`);
-      if (!res.ok) {
+  useEffect(() => {
+    let active = true;
+
+    async function loadPost() {
+      try {
+        const data = await fetchPostDetail(id);
+
+        if (!active) return;
+
+        setPost(data);
+        setLoading(false);
+      } catch {
+        if (!active) return;
         router.push("/treehole");
-        return;
       }
-      const data = await res.json();
-      setPost(data);
-    } catch {
-      router.push("/treehole");
     }
-    setLoading(false);
+
+    void loadPost();
+
+    return () => {
+      active = false;
+    };
   }, [id, router]);
 
-  useEffect(() => {
-    fetchPost();
-  }, [fetchPost]);
+  async function refreshPost() {
+    const data = await fetchPostDetail(id);
+    setPost(data);
+  }
 
   if (loading) {
     return (
@@ -130,7 +150,7 @@ export default function TreeholePostPage({
       <CommentSection
         postId={post.id}
         comments={post.comments}
-        onCommentAdded={fetchPost}
+        onCommentAdded={refreshPost}
       />
     </div>
   );

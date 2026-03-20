@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -22,6 +22,19 @@ interface Article {
   createdAt: string;
 }
 
+async function fetchArticlesPage(
+  page: number,
+  search: string,
+  tagFilter: string | null
+) {
+  const params = new URLSearchParams({ page: page.toString() });
+  if (search) params.set("search", search);
+  if (tagFilter) params.set("tag", tagFilter);
+
+  const res = await fetch(`/api/blog?${params}`);
+  return res.json();
+}
+
 export default function BlogPageWrapper() {
   return (
     <Suspense>
@@ -41,22 +54,25 @@ function BlogPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchArticles = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: page.toString() });
-    if (search) params.set("search", search);
-    if (tagFilter) params.set("tag", tagFilter);
-
-    const res = await fetch(`/api/blog?${params}`);
-    const data = await res.json();
-    setArticles(data.articles || []);
-    setTotalPages(data.pages || 1);
-    setLoading(false);
-  }, [page, search, tagFilter]);
-
   useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+    let active = true;
+
+    async function loadArticles() {
+      const data = await fetchArticlesPage(page, search, tagFilter);
+
+      if (!active) return;
+
+      setArticles(data.articles || []);
+      setTotalPages(data.pages || 1);
+      setLoading(false);
+    }
+
+    void loadArticles();
+
+    return () => {
+      active = false;
+    };
+  }, [page, search, tagFilter]);
 
   return (
     <div className="container mx-auto max-w-6xl py-6 px-4">
@@ -80,6 +96,7 @@ function BlogPage() {
               placeholder={t.blog.searchPlaceholder}
               value={search}
               onChange={(e) => {
+                setLoading(true);
                 setSearch(e.target.value);
                 setPage(1);
               }}
@@ -132,7 +149,10 @@ function BlogPage() {
                     variant="outline"
                     size="sm"
                     disabled={page <= 1}
-                    onClick={() => setPage(page - 1)}
+                    onClick={() => {
+                      setLoading(true);
+                      setPage(page - 1);
+                    }}
                   >
                     {t.blog.prevPage}
                   </Button>
@@ -143,7 +163,10 @@ function BlogPage() {
                     variant="outline"
                     size="sm"
                     disabled={page >= totalPages}
-                    onClick={() => setPage(page + 1)}
+                    onClick={() => {
+                      setLoading(true);
+                      setPage(page + 1);
+                    }}
                   >
                     {t.blog.nextPage}
                   </Button>
