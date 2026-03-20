@@ -1,51 +1,78 @@
+# 这个工作流做两件事：
+# 1. 把当前仓库代码构建成 Docker 镜像并推到 GHCR（GitHub 的镜像仓库）
+# 2. SSH 登录服务器，拉取最新镜像并重启服务
 name: Build & Deploy to Server
 
 on:
   push:
-    branches: [main, master]
+    # 只允许 main 触发部署，避免 main / master 两条主线互相覆盖线上
+    branches: [main]
 
 jobs:
+  # 第一个 job：负责构建镜像并推到 GHCR
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
+      # 读仓库代码
       contents: read
+      # 往 GitHub Packages / GHCR 推镜像需要写权限
       packages: write
 
     steps:
       - name: Checkout code
+        # 把当前提交的代码拉到 GitHub Actions 运行机上
         uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
+        # 登录 ghcr.io，这样后面的步骤才有权限推 Docker 镜像
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
+          # github.actor = 触发这次工作流的 GitHub 用户名
           username: ${{ github.actor }}
+          # GITHUB_TOKEN 是 GitHub 自动注入的临时令牌
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
+        # 用仓库根目录的 Dockerfile 构建镜像，并直接推到 GHCR
         uses: docker/build-push-action@v5
         with:
+          # context: . = 用整个仓库作为 Docker build 上下文
           context: .
+          # push: true = 构建完成后立即上传镜像
           push: true
+          # latest 标签，服务器拉镜像时会拿这个标签
           tags: ghcr.io/highplayerjason-max/nyu-treehole:latest
           build-args: |
+            # 给 Node 构建更多可用内存，减少构建时 OOM 风险
             NODE_OPTIONS=--max-old-space-size=4096
 
+  # 第二个 job：负责把服务器上的服务更新到最新镜像
   deploy:
     runs-on: ubuntu-latest
+    # 只有 build-and-push 成功后，deploy 才会开始
     needs: build-and-push
 
     steps:
       - name: Deploy to server via SSH
+        # 通过 SSH 远程登录服务器并执行下面的脚本
         uses: appleboy/ssh-action@v1
         with:
+          # 这些值来自 GitHub 仓库的 Secrets，不写死在代码里
           host: ${{ secrets.SERVER_HOST }}
           username: root
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            # 进入服务器上的项目目录
             cd /root/nyu-treehole
+            # 拉取 docker-compose.yml 里定义的最新镜像
             docker compose pull
+            # 以后台模式重启 / 更新容器
             docker compose up -d
+            # 稍等几秒，给数据库容器一点启动时间
             sleep 5
+            # 临时补丁：如果线上旧库没有 imageUrl 这一列，就补上
+            # || true 的意思是：即使这条 SQL 失败，也不要让整个部署失败
             docker exec nyu-treehole-db-1 psql -U postgres -d student_community -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true
+            # 打一行部署完成时间，方便看日志
             echo "Deploy done at $(date)"
