@@ -8,6 +8,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  const viewerId = session?.user?.id;
   const { id } = await params;
 
   const post = await prisma.treeholePost.findUnique({
@@ -15,6 +17,15 @@ export async function GET(
     include: {
       author: { select: { id: true, displayName: true } },
       hashtags: { include: { hashtag: true } },
+      ...(viewerId
+        ? {
+            likes: {
+              where: { userId: viewerId },
+              select: { id: true },
+              take: 1,
+            },
+          }
+        : {}),
       comments: {
         where: { status: ContentStatus.PUBLISHED },
         orderBy: { createdAt: "asc" },
@@ -37,11 +48,13 @@ export async function GET(
     ...post,
     author: post.isAnonymous ? null : post.author,
     authorId: post.isAnonymous ? null : post.authorId,
+    likedByMe: "likes" in post ? post.likes.length > 0 : false,
     comments: post.comments.map((c) => ({
       ...c,
       author: c.isAnonymous ? null : c.author,
       authorId: c.isAnonymous ? null : c.authorId,
     })),
+    ...("likes" in post ? { likes: undefined } : {}),
   };
 
   return NextResponse.json(sanitizedPost);

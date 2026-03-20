@@ -28,6 +28,7 @@ interface PostCardProps {
     author: { id: string; displayName: string } | null;
     hashtags: { hashtag: { id: string; name: string } }[];
     _count: { comments: number; likes: number };
+    likedByMe?: boolean;
     createdAt: string;
     comments?: CommentPreview[];
   };
@@ -179,7 +180,11 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-1 -ml-2 mb-3">
-          <LikeButton postId={post.id} initialCount={post._count.likes} />
+          <LikeButton
+            postId={post.id}
+            initialCount={post._count.likes}
+            initialLiked={post.likedByMe ?? false}
+          />
           <Link href={`/treehole/${post.id}`}>
             <button className="inline-flex items-center h-8 px-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

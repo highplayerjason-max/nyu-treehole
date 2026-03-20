@@ -28,6 +28,7 @@ interface PostDetail {
     createdAt: string;
   }[];
   _count: { comments: number; likes: number };
+  likedByMe?: boolean;
   createdAt: string;
 }
 
@@ -139,7 +140,11 @@ export default function TreeholePostPage({
           )}
 
           <div className="flex items-center gap-1 -ml-2">
-            <LikeButton postId={post.id} initialCount={post._count.likes} />
+            <LikeButton
+              postId={post.id}
+              initialCount={post._count.likes}
+              initialLiked={post.likedByMe ?? false}
+            />
             <ReportButton contentType="post" contentId={post.id} />
           </div>
         </CardContent>

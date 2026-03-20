@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -19,31 +19,36 @@ export function LikeButton({
   const { data: session } = useSession();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setLiked(initialLiked);
+    setCount(initialCount);
+  }, [initialLiked, initialCount]);
 
   async function handleLike() {
     if (!session) {
       toast.error("请先登录");
       return;
     }
-
-    // Optimistic update
-    setLiked(!liked);
-    setCount(liked ? count - 1 : count + 1);
+    if (pending) return;
 
     try {
+      setPending(true);
       const res = await fetch(`/api/treehole/${postId}/like`, {
         method: "POST",
       });
       const data = await res.json();
       if (!res.ok) {
-        // Revert on error
-        setLiked(liked);
-        setCount(count);
         toast.error(data.error || "操作失败");
+        return;
       }
+      setLiked(Boolean(data.liked));
+      setCount(typeof data.count === "number" ? data.count : count);
     } catch {
-      setLiked(liked);
-      setCount(count);
+      toast.error("操作失败，请稍后重试");
+    } finally {
+      setPending(false);
     }
   }
 
@@ -52,6 +57,7 @@ export function LikeButton({
       variant="ghost"
       size="sm"
       onClick={handleLike}
+      disabled={pending}
       className={`h-8 px-2 ${liked ? "text-red-500" : "text-muted-foreground"}`}
     >
       <svg

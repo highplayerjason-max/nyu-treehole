@@ -18,6 +18,7 @@ interface Post {
   author: { id: string; displayName: string } | null;
   hashtags: { hashtag: { id: string; name: string } }[];
   _count: { comments: number; likes: number };
+  likedByMe?: boolean;
   createdAt: string;
   comments: {
     id: string;

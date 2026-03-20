@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ContentStatus } from "@prisma/client";
 
 export async function POST(
   _req: NextRequest,
@@ -12,19 +13,34 @@ export async function POST(
   }
 
   const { id: postId } = await params;
-
-  const existing = await prisma.like.findUnique({
-    where: { userId_postId: { userId: session.user.id, postId } },
+  const post = await prisma.treeholePost.findUnique({
+    where: { id: postId },
+    select: { id: true, status: true },
   });
 
-  if (existing) {
-    await prisma.like.delete({ where: { id: existing.id } });
-    return NextResponse.json({ liked: false });
+  if (!post || post.status !== ContentStatus.PUBLISHED) {
+    return NextResponse.json({ error: "帖子不存在" }, { status: 404 });
   }
 
-  await prisma.like.create({
-    data: { userId: session.user.id, postId },
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.like.findUnique({
+      where: { userId_postId: { userId: session.user.id, postId } },
+    });
+
+    let liked: boolean;
+    if (existing) {
+      await tx.like.delete({ where: { id: existing.id } });
+      liked = false;
+    } else {
+      await tx.like.create({
+        data: { userId: session.user.id, postId },
+      });
+      liked = true;
+    }
+
+    const count = await tx.like.count({ where: { postId } });
+    return { liked, count };
   });
 
-  return NextResponse.json({ liked: true });
+  return NextResponse.json(result);
 }

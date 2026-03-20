@@ -8,6 +8,8 @@ import { ContentStatus } from "@prisma/client";
 
 // GET /api/treehole - List posts with cursor-based pagination
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  const viewerId = session?.user?.id;
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor");
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
@@ -29,6 +31,15 @@ export async function GET(req: NextRequest) {
       author: { select: { id: true, displayName: true } },
       hashtags: { include: { hashtag: true } },
       _count: { select: { comments: true, likes: true, reports: true } },
+      ...(viewerId
+        ? {
+            likes: {
+              where: { userId: viewerId },
+              select: { id: true },
+              take: 1,
+            },
+          }
+        : {}),
       comments: {
         where: { status: ContentStatus.PUBLISHED, parentId: null },
         orderBy: { createdAt: "asc" },
@@ -52,10 +63,12 @@ export async function GET(req: NextRequest) {
     ...post,
     author: post.isAnonymous ? null : post.author,
     authorId: post.isAnonymous ? null : post.authorId,
+    likedByMe: "likes" in post ? post.likes.length > 0 : false,
     comments: post.comments.map((c) => ({
       ...c,
       author: c.isAnonymous ? null : c.author,
     })),
+    ...("likes" in post ? { likes: undefined } : {}),
   }));
 
   return NextResponse.json({
@@ -157,6 +170,7 @@ export async function POST(req: NextRequest) {
           ...post,
           author: isAnonymous ? null : post.author,
           authorId: isAnonymous ? null : post.authorId,
+          likedByMe: false,
         },
         flagged: modResult.flagged,
       },
