@@ -8,6 +8,7 @@ import {
   issueEmailVerificationToken,
 } from "@/lib/email-verification";
 import { sendVerificationEmail } from "@/lib/email";
+import { getPublicAppUrl } from "@/lib/public-url";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     // email is already normalized (trim + lowercase) by the Zod schema
     const { email, password, displayName } = parsed.data;
     const passwordHash = await bcrypt.hash(password, 10);
-    const baseUrl = process.env.AUTH_URL || req.nextUrl.origin;
+    const baseUrl = getPublicAppUrl(process.env.AUTH_URL, req.nextUrl.origin);
 
     const { user, token, created } = await prisma.$transaction(async (tx) => {
       const existing = await tx.user.findUnique({ where: { email } });

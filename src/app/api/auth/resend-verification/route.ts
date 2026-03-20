@@ -7,6 +7,7 @@ import {
   issueEmailVerificationToken,
 } from "@/lib/email-verification";
 import { sendVerificationEmail } from "@/lib/email";
+import { getPublicAppUrl } from "@/lib/public-url";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const { token } = await issueEmailVerificationToken(prisma, user.id);
     const verificationUrl = buildEmailVerificationUrl(
-      process.env.AUTH_URL || req.nextUrl.origin,
+      getPublicAppUrl(process.env.AUTH_URL, req.nextUrl.origin),
       token
     );
 

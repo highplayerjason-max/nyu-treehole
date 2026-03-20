@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashEmailVerificationToken } from "@/lib/email-verification";
+import { getPublicAppUrl } from "@/lib/public-url";
 
-function buildRedirectUrl(req: NextRequest, path: string, params?: Record<string, string>) {
-  const url = new URL(path, process.env.AUTH_URL || req.nextUrl.origin);
+function buildRedirectUrl(
+  req: NextRequest,
+  path: string,
+  params?: Record<string, string>
+) {
+  const url = new URL(
+    path,
+    getPublicAppUrl(process.env.AUTH_URL, req.nextUrl.origin)
+  );
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
