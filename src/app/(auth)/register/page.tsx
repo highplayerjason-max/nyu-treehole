@@ -14,6 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+function isNyuEmail(value: string) {
+  return /^[^\s@]+@nyu\.edu$/i.test(value.trim());
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -25,13 +29,34 @@ export default function RegisterPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string).trim().toLowerCase();
+    const password = formData.get("password") as string;
+    const displayName = (formData.get("displayName") as string).trim();
     const data = {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-      displayName: formData.get("displayName") as string,
+      email,
+      password,
+      displayName,
     };
 
     const confirmPassword = formData.get("confirmPassword") as string;
+    if (displayName.length < 2 || displayName.length > 20) {
+      setError("昵称需为 2 到 20 个字符");
+      setLoading(false);
+      return;
+    }
+
+    if (!isNyuEmail(email)) {
+      setError("仅支持 NYU 邮箱（@nyu.edu）注册");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("密码至少6个字符");
+      setLoading(false);
+      return;
+    }
+
     if (data.password !== confirmPassword) {
       setError("两次输入的密码不一致");
       setLoading(false);
@@ -67,7 +92,7 @@ export default function RegisterPage() {
         <CardDescription>创建你的学生社群账号</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
             <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">
               {error}
@@ -91,7 +116,6 @@ export default function RegisterPage() {
               name="email"
               type="email"
               placeholder="netid@nyu.edu"
-              pattern=".*@nyu\\.edu$"
               title="仅支持 NYU 邮箱（@nyu.edu）注册"
               required
             />
