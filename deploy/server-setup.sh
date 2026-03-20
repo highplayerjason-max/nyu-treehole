@@ -2,11 +2,15 @@
 # =============================================================
 # server-setup.sh — 服务器首次初始化脚本（只需运行一次）
 # 用法：ssh root@你的IP 'bash -s' < deploy/server-setup.sh
+# 当前主线：
+# - GitHub 默认 / 唯一上线分支：main
+# - 服务器项目目录：/root/nyu-treehole
+# - 线上部署方式：GitHub Actions 构建 GHCR 镜像，服务器只负责 pull + up
 # =============================================================
 set -e
 
 echo "=========================================="
-echo "  学生社群 — 服务器初始化"
+echo "  NYU树洞 — 服务器初始化"
 echo "=========================================="
 
 # ── 1. 添加 2GB Swap（防止构建 OOM）──────────────────────────
@@ -54,18 +58,21 @@ echo "  ✓ 镜像加速配置完成"
 # ── 4. 克隆代码 ───────────────────────────────────────────────
 echo ""
 echo "[4/5] 克隆代码..."
-if [ ! -d /opt/student-community ]; then
-  git clone https://github.com/nazakinb123/student-community.git /opt/student-community
+APP_DIR="/root/nyu-treehole"
+REPO_URL="https://github.com/highplayerjason-max/nyu-treehole.git"
+
+if [ ! -d "${APP_DIR}" ]; then
+  git clone --branch main "${REPO_URL}" "${APP_DIR}"
   echo "  ✓ 代码克隆完成"
 else
-  cd /opt/student-community && git pull origin master
+  cd "${APP_DIR}" && git pull origin main
   echo "  ✓ 代码已是最新"
 fi
 
 # ── 5. 配置环境变量 ───────────────────────────────────────────
 echo ""
 echo "[5/5] 配置环境变量..."
-cd /opt/student-community
+cd "${APP_DIR}"
 
 if [ ! -f .env ]; then
   cp .env.example .env
@@ -78,16 +85,19 @@ if [ ! -f .env ]; then
   DB_PASS=$(openssl rand -hex 16)
   sed -i "s|postgresql://postgres:postgres@|postgresql://postgres:${DB_PASS}@|g" .env
 
-  # 更新 AUTH_URL 为服务器 IP（从环境变量读取或留空让用户填）
+  # 更新 AUTH_URL 为服务器 IP（如果还没有域名，先用 IP 跑）
   SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || echo "YOUR_SERVER_IP")
   sed -i "s|http://localhost:3000|http://${SERVER_IP}|g" .env
 
   echo "  ✓ .env 已生成（AUTH_SECRET 和 DB 密码已随机化）"
   echo ""
-  echo "  ⚠️  请检查 /opt/student-community/.env 并按需修改："
+  echo "  ⚠️  请检查 ${APP_DIR}/.env 并按需修改："
+  echo "     - AUTH_URL=http://${SERVER_IP} 或你的正式域名"
+  echo "     - EMAIL_DELIVERY_MODE=log（开发/调试）或 smtp（生产）"
+  echo "     - SMTP_HOST / SMTP_PORT / SMTP_SECURE / SMTP_USER / SMTP_PASSWORD / SMTP_FROM"
   echo "     - LLM_MODERATION_PROVIDER=deepseek"
   echo "     - LLM_MODERATION_API_KEY=你的Key"
-  cat .env
+  echo "  ⚠️  脚本不会打印 .env 内容，避免把密钥直接暴露到终端日志"
 else
   echo "  ✓ .env 已存在，跳过"
 fi
@@ -95,8 +105,9 @@ fi
 echo ""
 echo "=========================================="
 echo "  初始化完成！现在运行："
-echo "  cd /opt/student-community"
-echo "  docker compose up -d --build"
+echo "  cd ${APP_DIR}"
+echo "  docker compose pull"
+echo "  docker compose up -d"
 echo "  sleep 30 && docker compose exec -T app npx prisma migrate deploy"
 echo "  docker compose exec -T app npx prisma db seed"
 echo "=========================================="
