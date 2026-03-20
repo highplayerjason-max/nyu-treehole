@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: "NYU树洞",
   description: "匿名树洞 · 博客 · 课评 · NYU学生社区",
   icons: {
-    icon: "/treehole-mark.png?v=3",
-    shortcut: "/treehole-mark.png?v=3",
-    apple: "/treehole-mark.png?v=3",
+    icon: "/icon.png?v=4",
+    shortcut: "/icon.png?v=4",
+    apple: "/icon.png?v=4",
   },
 };
 
