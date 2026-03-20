@@ -78,7 +78,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?registered=true");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch {
       setError("注册失败，请稍后重试");
       setLoading(false);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteUploadedFiles } from "@/lib/uploads";
 
 export async function DELETE() {
   const session = await auth();
@@ -9,16 +10,28 @@ export async function DELETE() {
   }
 
   const userId = session.user.id;
+  const uploadedFilesToDelete: string[] = [];
 
   try {
     await prisma.$transaction(async (tx) => {
       // ── 1. Get IDs of content we're about to cascade-delete ──────────────
-      const postIds = (
-        await tx.treeholePost.findMany({
-          where: { authorId: userId },
-          select: { id: true },
-        })
-      ).map((p) => p.id);
+      const ownPosts = await tx.treeholePost.findMany({
+        where: { authorId: userId },
+        select: { id: true, imageUrl: true },
+      });
+      const postIds = ownPosts.map((p) => p.id);
+
+      const ownArticles = await tx.blogArticle.findMany({
+        where: { authorId: userId },
+        select: { coverImage: true },
+      });
+
+      uploadedFilesToDelete.push(
+        ...ownPosts.map((post) => post.imageUrl).filter(Boolean) as string[],
+        ...ownArticles
+          .map((article) => article.coverImage)
+          .filter(Boolean) as string[]
+      );
 
       // ── 2. Break self-referential parentId FK on treehole comments ────────
       // Comments on the user's own posts (will be cascade-deleted with the post)
@@ -64,6 +77,8 @@ export async function DELETE() {
       // ── 11. Delete the user ───────────────────────────────────────────────
       await tx.user.delete({ where: { id: userId } });
     });
+
+    await deleteUploadedFiles(uploadedFilesToDelete);
 
     return NextResponse.json({ success: true });
   } catch (error) {

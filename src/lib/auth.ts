@@ -1,7 +1,12 @@
 import NextAuth from "next-auth";
+import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+
+class EmailNotVerifiedError extends CredentialsSignin {
+  code = "email_not_verified";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -25,6 +30,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user) return null;
         if (user.isBanned) return null;
+        if (!user.emailVerified) {
+          throw new EmailNotVerifiedError();
+        }
 
         const isValid = await bcrypt.compare(
           credentials.password as string,

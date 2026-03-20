@@ -47,7 +47,11 @@ function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("邮箱或密码错误");
+      if (result.code === "email_not_verified") {
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      } else {
+        setError("邮箱或密码错误");
+      }
     } else {
       router.push("/");
       router.refresh();
@@ -61,9 +65,14 @@ function LoginPage() {
         <CardDescription>登录你的学生社群账号</CardDescription>
       </CardHeader>
       <CardContent>
+        {searchParams.get("verified") === "true" && (
+          <div className="mb-4 rounded-lg bg-[#f0fdf4] p-3 text-sm text-[#166534] text-center">
+            邮箱验证成功，现在可以登录了
+          </div>
+        )}
         {searchParams.get("registered") === "true" && (
           <div className="mb-4 rounded-lg bg-[#f5f0fb] p-3 text-sm text-[#57068c] text-center">
-            注册成功！现在可以直接登录了
+            验证邮件已发送，请先查收邮箱并点击邮件里的链接
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">

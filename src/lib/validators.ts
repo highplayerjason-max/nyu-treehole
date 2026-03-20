@@ -1,17 +1,23 @@
 import { z } from "zod";
 
+export const nyuEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("请输入有效的邮箱地址")
+  .endsWith("@nyu.edu", "仅支持 NYU 邮箱（@nyu.edu）注册");
+
 export const registerSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email("请输入有效的邮箱地址")
-    .endsWith("@nyu.edu", "仅支持 NYU 邮箱（@nyu.edu）注册"),
+  email: nyuEmailSchema,
   password: z.string().min(6, "密码至少6个字符"),
   displayName: z
     .string()
     .min(2, "昵称至少2个字符")
     .max(20, "昵称最多20个字符"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: nyuEmailSchema,
 });
 
 export const loginSchema = z.object({
@@ -54,6 +60,7 @@ export const reportSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
 export type TreeholePostInput = z.infer<typeof treeholePostSchema>;
 export type TreeholeCommentInput = z.infer<typeof treeholeCommentSchema>;
 export type BlogArticleInput = z.infer<typeof blogArticleSchema>;
