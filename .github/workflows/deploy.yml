@@ -71,8 +71,8 @@ jobs:
             docker compose up -d
             # 稍等几秒，给数据库容器一点启动时间
             sleep 5
-            # 执行 Prisma 迁移，让线上数据库结构跟当前代码保持一致
-            docker compose exec -T app npx prisma migrate deploy
+            # 执行 Prisma 迁移，固定使用项目当前的 Prisma 6 版本，避免 npx 拉取 Prisma 7 导致生产库报错
+            docker compose exec -T app npx prisma@6.19.2 migrate deploy
             # 临时补丁：如果线上旧库没有 imageUrl 这一列，就补上
             # || true 的意思是：即使这条 SQL 失败，也不要让整个部署失败
             docker exec nyu-treehole-db-1 psql -U postgres -d student_community -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true

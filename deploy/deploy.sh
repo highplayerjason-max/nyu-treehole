@@ -49,8 +49,8 @@ echo ""
 echo "[3/4] 等待数据库就绪（30s）..."
 sleep 30
 run_remote "cd ${APP_DIR} && docker compose ps 2>&1"
-run_remote "cd ${APP_DIR} && docker compose exec -T app npx prisma migrate deploy 2>&1"
-run_remote "cd ${APP_DIR} && docker compose exec -T app npx prisma db seed 2>&1"
+run_remote "cd ${APP_DIR} && docker compose exec -T app npx prisma@6.19.2 migrate deploy 2>&1"
+run_remote "cd ${APP_DIR} && docker compose exec -T app npx prisma@6.19.2 db seed 2>&1"
 
 # ── 4. 验证 ───────────────────────────────────────────────────
 echo ""

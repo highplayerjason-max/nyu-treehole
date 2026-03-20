@@ -55,35 +55,35 @@ export async function sendVerificationEmail({
   }
 
   const transport = getTransport();
-  const appName = "NYU树洞";
+  const appName = "NYU Treehole";
 
   await transport.sendMail({
     from,
     to,
-    subject: `${appName} 邮箱验证`,
+    subject: `${appName} email verification`,
     text: [
-      `你好，${displayName}：`,
+      `Hi ${displayName},`,
       "",
-      `请点击下面的链接完成邮箱验证（${expiresInHours} 小时内有效）：`,
+      `Please verify your email address by opening the link below. This link will expire in ${expiresInHours} hours:`,
       verificationUrl,
       "",
-      "如果这不是你的操作，请忽略这封邮件。",
+      "If you did not create this account, you can safely ignore this email.",
     ].join("\n"),
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
-        <p>你好，${displayName}：</p>
-        <p>请点击下面的按钮完成邮箱验证（${expiresInHours} 小时内有效）：</p>
+        <p>Hi ${displayName},</p>
+        <p>Please confirm your email address by clicking the button below. This link will expire in ${expiresInHours} hours.</p>
         <p>
           <a
             href="${verificationUrl}"
             style="display:inline-block;padding:12px 20px;background:#57068c;color:#ffffff;text-decoration:none;border-radius:8px;"
           >
-            验证邮箱
+            Verify email
           </a>
         </p>
-        <p>如果按钮无法点击，也可以复制下面这个链接到浏览器打开：</p>
+        <p>If the button does not work, you can also copy and paste this link into your browser:</p>
         <p style="word-break: break-all;">${verificationUrl}</p>
-        <p>如果这不是你的操作，请忽略这封邮件。</p>
+        <p>If you did not create this account, you can safely ignore this email.</p>
       </div>
     `,
   });

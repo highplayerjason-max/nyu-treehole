@@ -82,21 +82,21 @@ SMTP_PORT="587"
 SMTP_SECURE="false"
 SMTP_USER="your-smtp-user"
 SMTP_PASSWORD="your-smtp-password"
-SMTP_FROM="NYU树洞 <no-reply@example.com>"
+SMTP_FROM="NYU Treehole <no-reply@example.com>"
 ```
 
 如果你现在还没有域名，生产环境可以先直接用公网 IP：
 
 ```env
 AUTH_URL="http://YOUR_SERVER_IP"
-SMTP_FROM="NYU树洞 <no-reply@example.com>"
+SMTP_FROM="NYU Treehole <no-reply@example.com>"
 ```
 
 后续买了域名以后，只需要改这两项：
 
 ```env
 AUTH_URL="https://your-domain.com"
-SMTP_FROM="NYU树洞 <no-reply@your-domain.com>"
+SMTP_FROM="NYU Treehole <no-reply@your-domain.com>"
 ```
 
 如果还没配好 SMTP，可以暂时用：
