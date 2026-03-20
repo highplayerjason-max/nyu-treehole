@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import Link from "next/link";
 interface PostDetail {
   id: string;
   content: string;
+  imageUrl?: string | null;
   isAnonymous: boolean;
   author: { id: string; displayName: string } | null;
   hashtags: { hashtag: { id: string; name: string } }[];
@@ -125,6 +127,18 @@ export default function TreeholePostPage({
           <p className="text-base whitespace-pre-wrap break-words mb-4">
             {post.content}
           </p>
+
+          {post.imageUrl && (
+            <div className="mb-4">
+              <Image
+                src={post.imageUrl}
+                alt="post image"
+                width={960}
+                height={640}
+                className="w-full rounded-xl border border-border object-cover"
+              />
+            </div>
+          )}
 
           {post.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-4">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,6 +9,7 @@ interface ArticleCardProps {
     slug: string;
     title: string;
     excerpt?: string | null;
+    coverImage?: string | null;
     author: { displayName: string };
     tags: { tag: { name: string } }[];
     series?: { title: string } | null;
@@ -20,6 +22,17 @@ export function ArticleCard({ article }: ArticleCardProps) {
     <Link href={`/blog/${article.slug}`}>
       <Card className="h-full transition-shadow hover:shadow-md cursor-pointer">
         <CardContent className="pt-4">
+          {article.coverImage && (
+            <div className="mb-4 overflow-hidden rounded-xl border border-border">
+              <Image
+                src={article.coverImage}
+                alt={`${article.title} cover`}
+                width={960}
+                height={540}
+                className="h-48 w-full object-cover"
+              />
+            </div>
+          )}
           {article.series && (
             <p className="text-xs text-blue-500 mb-1">
               {article.series.title}

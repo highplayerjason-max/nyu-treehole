@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface ArticleDetail {
   title: string;
   slug: string;
   content: string;
+  coverImage?: string | null;
   author: { id: string; displayName: string };
   tags: { tag: { id: string; name: string } }[];
   series?: {
@@ -133,6 +135,18 @@ export default function BlogArticlePage({
 
       <article>
         <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
+
+        {article.coverImage && (
+          <div className="mb-6 overflow-hidden rounded-2xl border border-border">
+            <Image
+              src={article.coverImage}
+              alt={`${article.title} cover`}
+              width={1200}
+              height={675}
+              className="w-full object-cover"
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-8 w-8">
