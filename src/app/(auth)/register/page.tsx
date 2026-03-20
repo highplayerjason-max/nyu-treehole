@@ -32,15 +32,15 @@ export default function RegisterPage() {
     const email = (formData.get("email") as string).trim().toLowerCase();
     const password = formData.get("password") as string;
     const displayName = (formData.get("displayName") as string).trim();
+    const confirmPassword = formData.get("confirmPassword") as string;
     const data = {
       email,
       password,
       displayName,
     };
 
-    const confirmPassword = formData.get("confirmPassword") as string;
     if (displayName.length < 2 || displayName.length > 20) {
-      setError("昵称需为 2 到 20 个字符");
+      setError("昵称需要在 2 到 20 个字符之间");
       setLoading(false);
       return;
     }
@@ -52,7 +52,7 @@ export default function RegisterPage() {
     }
 
     if (password.length < 6) {
-      setError("密码至少6个字符");
+      setError("密码至少需要 6 个字符");
       setLoading(false);
       return;
     }
@@ -63,11 +63,15 @@ export default function RegisterPage() {
       return;
     }
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        signal: controller.signal,
       });
 
       const result = await res.json();
@@ -79,9 +83,15 @@ export default function RegisterPage() {
       }
 
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-    } catch {
-      setError("注册失败，请稍后重试");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setError("注册请求超时，请稍后重试");
+      } else {
+        setError("注册失败，请稍后重试");
+      }
       setLoading(false);
+    } finally {
+      window.clearTimeout(timeoutId);
     }
   }
 
@@ -94,7 +104,7 @@ export default function RegisterPage() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && (
-            <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">
+            <div className="rounded bg-red-50 p-2 text-center text-sm text-red-500">
               {error}
             </div>
           )}
@@ -129,7 +139,7 @@ export default function RegisterPage() {
               id="password"
               name="password"
               type="password"
-              placeholder="至少6个字符"
+              placeholder="至少 6 个字符"
               minLength={6}
               required
             />
