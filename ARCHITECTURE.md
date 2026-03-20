@@ -11,19 +11,18 @@
 3. [数据库设计](#3-数据库设计)
 4. [功能模块详解](#4-功能模块详解)
    - 4.1 [用户注册与登录](#41-用户注册与登录)
-   - 4.2 [邮箱验证（6位验证码）](#42-邮箱验证6位验证码)
-   - 4.3 [树洞（匿名社区）](#43-树洞匿名社区)
-   - 4.4 [博客](#44-博客)
-   - 4.5 [图片上传](#45-图片上传)
-   - 4.6 [发帖频率限制](#46-发帖频率限制)
-   - 4.7 [内容审核（LLM）](#47-内容审核llm)
-   - 4.8 [举报系统](#48-举报系统)
-   - 4.9 [点赞系统](#49-点赞系统)
-   - 4.10 [Hashtag 系统](#410-hashtag-系统)
-   - 4.11 [管理员后台](#411-管理员后台)
-   - 4.12 [账号注销](#412-账号注销)
-   - 4.13 [多语言支持（i18n）](#413-多语言支持i18n)
-   - 4.14 [翻译功能](#414-翻译功能)
+   - 4.2 [树洞（匿名社区）](#42-树洞匿名社区)
+   - 4.3 [博客](#43-博客)
+   - 4.4 [图片上传](#44-图片上传)
+   - 4.5 [发帖频率限制](#45-发帖频率限制)
+   - 4.6 [内容审核（LLM）](#46-内容审核llm)
+   - 4.7 [举报系统](#47-举报系统)
+   - 4.8 [点赞系统](#48-点赞系统)
+   - 4.9 [Hashtag 系统](#49-hashtag-系统)
+   - 4.10 [管理员后台](#410-管理员后台)
+   - 4.11 [账号注销](#411-账号注销)
+   - 4.12 [多语言支持（i18n）](#412-多语言支持i18n)
+   - 4.13 [翻译功能](#413-翻译功能)
 5. [环境变量说明](#5-环境变量说明)
 6. [上线部署流程](#6-上线部署流程)
 7. [常见问题与注意事项](#7-常见问题与注意事项)
@@ -40,7 +39,6 @@
 | 数据库 | PostgreSQL 16 + Prisma v6 ORM |
 | 认证 | NextAuth.js v5（Credentials Provider，JWT 会话） |
 | 表单验证 | Zod v4 |
-| 邮件发送 | Nodemailer v8 |
 | 密码加密 | bcryptjs |
 | 容器化 | Docker + Docker Compose |
 | CI/CD | GitHub Actions → GHCR → 服务器 SSH 部署 |
@@ -66,13 +64,10 @@ website/
 │   │   ├── account/page.tsx   # 用户个人主页 & 账号注销
 │   │   ├── blog/              # 博客前端页面
 │   │   ├── treehole/          # 树洞前端页面
-│   │   ├── verify-email/      # 邮箱验证（输入6位验证码）
 │   │   ├── api/               # 所有 API 路由（纯服务端）
 │   │   │   ├── auth/
 │   │   │   │   ├── [...nextauth]/route.ts      # NextAuth 内置路由
-│   │   │   │   ├── register/route.ts           # 注册接口
-│   │   │   │   ├── verify-email/route.ts       # 验证验证码接口
-│   │   │   │   └── resend-verification/route.ts # 重发验证码接口
+│   │   │   │   └── register/route.ts           # 注册接口
 │   │   │   ├── treehole/
 │   │   │   │   ├── route.ts                    # 获取列表/发帖
 │   │   │   │   └── [id]/
@@ -109,7 +104,6 @@ website/
 │   │   └── providers.tsx      # 客户端 Provider 包裹（SessionProvider + LanguageProvider）
 │   ├── lib/
 │   │   ├── auth.ts            # NextAuth 配置（认证逻辑核心）
-│   │   ├── email.ts           # 邮件发送（Nodemailer + 验证码模板）
 │   │   ├── prisma.ts          # Prisma 单例客户端
 │   │   ├── rate-limit.ts      # 发帖频率限制（每分钟1条）
 │   │   ├── moderation.ts      # LLM 内容审核
@@ -143,24 +137,14 @@ website/
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | String (cuid) | 主键 |
-| email | String (unique) | 必须是 @nyu.edu 邮箱 |
+| email | String (unique) | 必须是 @nyu.edu 邮箱，存储时已 lowercase |
 | passwordHash | String | bcrypt 哈希，cost=10 |
 | displayName | String | 显示名称（2-20字符） |
 | role | Enum(Role) | USER 或 ADMIN |
 | isBanned | Boolean | 是否封禁，默认 false |
-| emailVerified | Boolean | 邮箱是否已验证 |
 | avatarUrl | String? | 头像 URL（可选） |
 | createdAt | DateTime | 注册时间 |
 | updatedAt | DateTime | 最后更新时间 |
-
-#### `VerificationToken` 表
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | String (cuid) | 主键 |
-| userId | String | 外键 → User.id |
-| token | String (unique) | 6位数字验证码 |
-| expiresAt | DateTime | 过期时间（10分钟） |
-| createdAt | DateTime | 创建时间 |
 
 ### 树洞相关
 
@@ -266,83 +250,32 @@ enum ModerationAction { APPROVE  REJECT  DELETE }
 **注册流程：**
 1. 用户填写邮箱（必须 `@nyu.edu`）、密码（≥6位）、显示名称
 2. 前端提交到 `POST /api/auth/register`
-3. 服务端用 Zod `registerSchema` 校验（`src/lib/validators.ts`）
-4. 检查邮箱是否已注册
+3. 服务端用 Zod `registerSchema` 校验（`src/lib/validators.ts`）——邮箱自动 `trim().toLowerCase()`
+4. 检查邮箱是否已注册（用规范化后的邮箱查库）
 5. 用 `bcryptjs.hash(password, 10)` 生成密码哈希
-6. 创建 User 记录
-7. 生成6位验证码，存入 `VerificationToken`（10分钟有效）
-8. 调用 `sendVerificationCode()` 发送验证码邮件
-9. 前端跳转到 `/verify-email?email=xxx`
+6. 创建 User 记录，跳转到登录页
 
 **相关文件：**
 - `src/app/(auth)/register/page.tsx` — 注册表单 UI
 - `src/app/api/auth/register/route.ts` — 注册接口
-- `src/lib/validators.ts` — registerSchema（@nyu.edu 邮箱限制在这里）
-- `src/lib/email.ts` — 发送验证码邮件
+- `src/lib/validators.ts` — registerSchema（@nyu.edu 限制 + email normalize）
 
 **登录流程：**
 1. 用户填写邮箱和密码
 2. NextAuth Credentials provider 的 `authorize()` 函数处理
-3. 查找用户 → `bcryptjs.compare()` 验密 → 检查是否被封禁
-4. 成功后返回用户对象，NextAuth 生成 JWT
-5. Session 包含 `id`、`email`、`name`、`role`、`image` 字段
+3. 对 email 做 `trim().toLowerCase()` 规范化，查库找用户
+4. `bcryptjs.compare()` 验密 → 检查是否被封禁
+5. 成功后返回用户对象，NextAuth 生成 JWT
+6. Session 包含 `id`、`email`、`name`、`role` 字段
 
 **相关文件：**
 - `src/app/(auth)/login/page.tsx` — 登录表单 UI
-- `src/lib/auth.ts` — NextAuth 配置核心，`authorize` 函数在这里
+- `src/lib/auth.ts` — NextAuth 配置核心，email normalize + `authorize` 逻辑在这里
 - `src/types/next-auth.d.ts` — 扩展 Session 类型以包含 `id` 和 `role`
 
 ---
 
-### 4.2 邮箱验证（6位验证码）
-
-**设计方案：** 注册后发送6位数字验证码到 @nyu.edu 邮箱，用户在验证页面输入验证码完成激活。
-
-**流程：**
-```
-注册 → 生成6位码存DB → 发送邮件 → 跳转/verify-email?email=xxx
-→ 用户输入验证码 → POST /api/auth/verify-email → 校验DB → 标记emailVerified=true
-```
-
-**验证码生成（`src/lib/email.ts`）：**
-```typescript
-export function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-```
-
-**验证逻辑（`src/app/api/auth/verify-email/route.ts`）：**
-- 接收 `{ email, code }`（POST 请求体）
-- 查找用户，再查找未过期的 VerificationToken
-- token 字段存储的就是6位验证码字符串
-- 匹配成功 → 更新 `emailVerified=true` → 删除该 token
-
-**重发验证码（`src/app/api/auth/resend-verification/route.ts`）：**
-- 接收 `{ email }`
-- 删除旧 token → 生成新码 → 发新邮件
-- 有效期重置为10分钟
-
-**SMTP 配置（`src/lib/email.ts`）：**
-通过环境变量配置，支持任意 SMTP 服务商（已测试 Gmail）：
-```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false     # 587 用 STARTTLS，不是 SSL
-SMTP_USER=your@gmail.com
-SMTP_PASS=your_app_password   # Gmail 需要生成"应用专用密码"
-SMTP_FROM="NYU树洞 <your@gmail.com>"
-```
-
-**相关文件：**
-- `src/lib/email.ts` — 验证码生成 + 邮件模板 + 发送函数
-- `src/app/api/auth/register/route.ts` — 注册时触发发送
-- `src/app/api/auth/verify-email/route.ts` — 验证接口（POST）
-- `src/app/api/auth/resend-verification/route.ts` — 重发接口
-- `src/app/verify-email/page.tsx` — 验证码输入页面（6个输入框）
-
----
-
-### 4.3 树洞（匿名社区）
+### 4.2 树洞（匿名社区）
 
 **核心概念：** 用户可以发布匿名或实名帖子，支持 hashtag、图片、评论、点赞、举报。
 
@@ -377,7 +310,7 @@ SMTP_FROM="NYU树洞 <your@gmail.com>"
 
 ---
 
-### 4.4 博客
+### 4.3 博客
 
 **核心概念：** 用户可以发布署名文章，支持标签（Tag）、系列（Series）、评论、举报。
 
@@ -398,7 +331,7 @@ SMTP_FROM="NYU树洞 <your@gmail.com>"
 
 ---
 
-### 4.5 图片上传
+### 4.4 图片上传
 
 **设计方案：** 图片上传到服务器本地目录（`/public/uploads/`），URL 以 `/uploads/filename` 形式返回。
 
@@ -424,7 +357,7 @@ SMTP_FROM="NYU树洞 <your@gmail.com>"
 
 ---
 
-### 4.6 发帖频率限制
+### 4.5 发帖频率限制
 
 **规则：** 每个用户每分钟最多发1条内容（跨树洞帖子、树洞评论、博客文章共用同一个计数池）。
 
@@ -452,7 +385,7 @@ export async function isRateLimited(userId: string): Promise<boolean> {
 
 ---
 
-### 4.7 内容审核（LLM）
+### 4.6 内容审核（LLM）
 
 **设计方案：** 使用 LLM API 对发帖/评论内容进行自动审核，不合规内容标记为 FLAGGED 进入人工审核队列（不直接删除）。
 
@@ -486,7 +419,7 @@ LLM_MODERATION_API_KEY=sk-ant-xxx
 
 ---
 
-### 4.8 举报系统
+### 4.7 举报系统
 
 **举报流程：**
 1. 用户点击举报按钮，填写理由（可选，最多500字）
@@ -507,7 +440,7 @@ LLM_MODERATION_API_KEY=sk-ant-xxx
 
 ---
 
-### 4.9 点赞系统
+### 4.8 点赞系统
 
 **规则：** 每个用户对每条帖子只能点赞一次（`Like` 表有 `(userId, postId)` 联合唯一约束）。
 
@@ -523,7 +456,7 @@ LLM_MODERATION_API_KEY=sk-ant-xxx
 
 ---
 
-### 4.10 Hashtag 系统
+### 4.9 Hashtag 系统
 
 **提取逻辑（在 `POST /api/treehole` 中）：**
 ```typescript
@@ -546,7 +479,7 @@ const hashtags = [...content.matchAll(/#[\w\u4e00-\u9fa5]+/g)].map(m => m[0].sli
 
 ---
 
-### 4.11 管理员后台
+### 4.10 管理员后台
 
 **访问控制：** 所有 `/api/admin/*` 接口都检查 `session.user.role === "ADMIN"`，否则返回 403。前端 `/admin` 页面也有 role 检查。
 
@@ -568,7 +501,7 @@ const hashtags = [...content.matchAll(/#[\w\u4e00-\u9fa5]+/g)].map(m => m[0].sli
 
 ---
 
-### 4.12 账号注销
+### 4.11 账号注销
 
 **流程（`DELETE /api/user/delete`）：**
 使用 Prisma 事务（`$transaction`）按顺序删除：
@@ -591,7 +524,7 @@ const hashtags = [...content.matchAll(/#[\w\u4e00-\u9fa5]+/g)].map(m => m[0].sli
 
 ---
 
-### 4.13 多语言支持（i18n）
+### 4.12 多语言支持（i18n）
 
 **支持语言：** 中文（简体）和英文
 
@@ -611,7 +544,7 @@ const hashtags = [...content.matchAll(/#[\w\u4e00-\u9fa5]+/g)].map(m => m[0].sli
 
 ---
 
-### 4.14 翻译功能
+### 4.13 翻译功能
 
 **功能：** 用户可以翻译树洞帖子内容（调用外部翻译 API）。
 
@@ -631,7 +564,7 @@ const hashtags = [...content.matchAll(/#[\w\u4e00-\u9fa5]+/g)].map(m => m[0].sli
 文件位置：服务器上 `/app/.env`（不提交到 Git，见 `.env.example` 模板）
 
 ```bash
-# 数据库
+# 数据库（必填）
 DATABASE_URL="postgresql://user:password@db:5432/nyu_treehole"
 
 # NextAuth（必填）
@@ -641,23 +574,10 @@ AUTH_URL="https://你的域名"
 # Docker PostgreSQL 密码
 POSTGRES_PASSWORD="your-db-password"
 
-# 邮件发送（SMTP）
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_SECURE="false"       # 465端口用true，587用false
-SMTP_USER="your@gmail.com"
-SMTP_PASS="your-app-password"  # Gmail 应用专用密码
-SMTP_FROM="NYU树洞 <your@gmail.com>"
-
 # LLM 内容审核（可选，不配置则不审核）
 LLM_MODERATION_PROVIDER="anthropic"   # 或 openai / deepseek
 LLM_MODERATION_API_KEY="sk-ant-xxx"
 ```
-
-**Gmail 应用专用密码获取方式：**
-1. Google 账户 → 安全性 → 两步验证（必须开启）
-2. 两步验证页面底部 → "应用专用密码"
-3. 生成一个16位密码，填入 `SMTP_PASS`
 
 ---
 

@@ -16,8 +16,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        // Normalize email to prevent case/whitespace mismatch with stored value
+        const email = (credentials.email as string).trim().toLowerCase();
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
         });
 
         if (!user) return null;

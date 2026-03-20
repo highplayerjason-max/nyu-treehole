@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // email is already normalized (trim + lowercase) by the Zod schema
     const { email, password, displayName } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -32,7 +33,6 @@ export async function POST(req: NextRequest) {
         email,
         passwordHash,
         displayName,
-        emailVerified: true,
       },
     });
 

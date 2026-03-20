@@ -4,12 +4,34 @@
 
 ---
 
+## [0.8.0] — 2026-03-20
+
+### 移除
+- **邮箱验证系统完全移除**：删除 `src/lib/email.ts`、三个空的验证路由目录（`verify-email/`、`resend-verification/`）
+- `nodemailer` 和 `@types/nodemailer` 依赖已从 `package.json` 中删除
+- `.env.example` 中移除 SMTP 配置段
+
+### 数据库变更（需执行 migration）
+- `User` 表移除 `emailVerified` 字段（从未被鉴权逻辑检查过）
+- 移除 `VerificationToken` 表（从未被写入过）
+- Migration 文件：`prisma/migrations/20260320000000_remove_email_verification/migration.sql`
+
+### 修复
+- **邮箱大小写/空格导致登录失败**：注册和登录时统一对邮箱做 `trim().toLowerCase()`
+  - `src/lib/validators.ts`：`registerSchema` 和 `loginSchema` 的 email 字段加 `.trim().toLowerCase()` transform
+  - `src/lib/auth.ts`：`authorize()` 中对 credentials.email 做规范化再查库
+
+### 文档
+- `ARCHITECTURE.md` 更新：移除邮箱验证相关章节，修正认证流程描述
+- `README.md` 更新：移除 SMTP 配置说明，移除邮箱验证功能描述
+
+---
+
 ## [未发布] — 进行中
 
 ### 待完成
-- 邮箱验证码流程打通（前端验证码输入页 + API 已写好，SMTP 待配置）
 - GitHub Actions 构建失败问题修复
-- 服务器数据库 `imageUrl` 字段迁移
+- 服务器数据库 `imageUrl` 字段迁移（及新的 email verification migration）
 
 ---
 

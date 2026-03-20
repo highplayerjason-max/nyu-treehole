@@ -62,7 +62,6 @@ export async function DELETE() {
       await tx.blogSeries.deleteMany({ where: { authorId: userId } });
 
       // ── 11. Delete the user ───────────────────────────────────────────────
-      //      Cascades: VerificationToken
       await tx.user.delete({ where: { id: userId } });
     });
 
