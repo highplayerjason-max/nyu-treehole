@@ -51,11 +51,11 @@ export function Navbar() {
           {/* Deliberately use a static SVG file with a plain img to avoid runtime image processing. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/treehole-logo.png?v=4"
+            src="/treehole-mark.svg?v=5"
             alt={lang === "zh" ? "树洞 Logo" : "Treehole logo"}
-            width="88"
-            height="50"
-            className="h-9 w-auto sm:h-10"
+            width="56"
+            height="48"
+            className="h-10 w-auto"
             decoding="async"
           />
         </Link>
@@ -173,11 +173,11 @@ export function Navbar() {
                   {/* Deliberately use a static SVG file with a plain img to avoid runtime image processing. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/treehole-logo.png?v=4"
+                    src="/treehole-mark.svg?v=5"
                     alt={lang === "zh" ? "树洞 Logo" : "Treehole logo"}
-                    width="88"
-                    height="50"
-                    className="h-10 w-auto"
+                    width="56"
+                    height="48"
+                    className="h-11 w-auto"
                     decoding="async"
                   />
                 </Link>
