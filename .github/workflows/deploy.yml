@@ -62,6 +62,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: root
           password: ${{ secrets.SERVER_PASSWORD }}
+          # 国内服务器从 GHCR 拉镜像很慢，默认 10m 不够
+          command_timeout: 20m
           script: |
             # 进入服务器上的项目目录
             cd /root/nyu-treehole
