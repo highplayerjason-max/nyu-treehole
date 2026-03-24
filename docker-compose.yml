@@ -15,9 +15,8 @@ services:
       retries: 10
 
   app:
-    # Use pre-built image from GitHub Container Registry (built by GitHub Actions)
-    # This avoids running npm build on the server (too memory-intensive for 2GB VPS)
-    image: ghcr.io/highplayerjason-max/nyu-treehole:latest
+    # 镜像由 CI 构建后 SCP 传到服务器，docker load 加载，不从远程仓库拉取
+    image: nyu-treehole:latest
     restart: unless-stopped
     ports:
       - "80:3000"
