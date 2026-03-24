@@ -61,6 +61,50 @@ export async function GET(
   return NextResponse.json(sanitizedPost);
 }
 
+// PUT /api/treehole/[id] - Edit post (author or admin)
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const post = await prisma.treeholePost.findUnique({ where: { id } });
+
+  if (!post || post.status === ContentStatus.DELETED) {
+    return NextResponse.json({ error: "帖子不存在" }, { status: 404 });
+  }
+
+  if (post.authorId !== session.user.id && session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "无权限编辑" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const content = typeof body.content === "string" ? body.content.trim() : "";
+
+    if (!content || content.length > 2000) {
+      return NextResponse.json(
+        { error: content ? "内容最多 2000 个字符" : "内容不能为空" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.treeholePost.update({
+      where: { id },
+      data: { content },
+    });
+
+    return NextResponse.json({ post: updated });
+  } catch (error) {
+    console.error("Update post error:", error);
+    return NextResponse.json({ error: "更新失败" }, { status: 500 });
+  }
+}
+
 // DELETE /api/treehole/[id] - Delete post (author or admin)
 export async function DELETE(
   _req: NextRequest,

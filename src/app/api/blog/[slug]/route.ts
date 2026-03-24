@@ -46,6 +46,7 @@ export async function GET(
 
   const response = {
     ...article,
+    isOwner: viewerId === article.authorId,
     likedByMe: "likes" in article ? article.likes.length > 0 : false,
     ...("likes" in article ? { likes: undefined } : {}),
   };

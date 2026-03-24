@@ -58,6 +58,9 @@ export default function TreeholePostPage({
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,7 +91,7 @@ export default function TreeholePostPage({
     setPost(data);
   }
 
-  const canDelete =
+  const canManage =
     post?.isOwner || session?.user?.role === "ADMIN";
 
   async function handleDelete() {
@@ -107,6 +110,40 @@ export default function TreeholePostPage({
     } catch {
       toast.error("删除失败，请稍后重试");
       setDeleting(false);
+    }
+  }
+
+  function startEdit() {
+    if (!post) return;
+    setEditContent(post.content);
+    setEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!editContent.trim()) {
+      toast.error("内容不能为空");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/treehole/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "保存失败");
+        setSavingEdit(false);
+        return;
+      }
+      toast.success("已保存");
+      setEditing(false);
+      await refreshPost();
+    } catch {
+      toast.error("保存失败，请稍后重试");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -151,9 +188,38 @@ export default function TreeholePostPage({
             </div>
           </div>
 
-          <p className="text-base whitespace-pre-wrap break-words mb-4">
-            {post.content}
-          </p>
+          {editing ? (
+            <div className="mb-4 space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                maxLength={2000}
+                rows={6}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditing(false)}
+                  disabled={savingEdit}
+                >
+                  取消
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? "保存中..." : "保存"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-base whitespace-pre-wrap break-words mb-4">
+              {post.content}
+            </p>
+          )}
 
           {post.imageUrl && (
             <div className="mb-4">
@@ -187,7 +253,20 @@ export default function TreeholePostPage({
               initialLiked={post.likedByMe ?? false}
             />
             <ReportButton contentType="post" contentId={post.id} />
-            {canDelete && (
+            {canManage && !editing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                onClick={startEdit}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                编辑
+              </Button>
+            )}
+            {canManage && (
               <Button
                 variant="ghost"
                 size="sm"

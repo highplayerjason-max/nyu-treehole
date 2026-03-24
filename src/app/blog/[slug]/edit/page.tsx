@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,12 @@ export default function EditArticlePage({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isDraft, setIsDraft] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Wait for session to load before checking authorization
@@ -40,9 +44,7 @@ export default function EditArticlePage({
       const data = await res.json();
 
       // Client-side auth guard: only author or admin can access the edit page
-      const isAuthor = session?.user?.id === data.author?.id;
-      const isAdmin = session?.user?.role === "ADMIN";
-      if (!isAuthor && !isAdmin) {
+      if (!data.isOwner && session?.user?.role !== "ADMIN") {
         toast.error("无权限编辑此文章");
         router.push(`/blog/${slug}`);
         return;
@@ -50,12 +52,46 @@ export default function EditArticlePage({
 
       setTitle(data.title);
       setContent(data.content);
+      setCoverImage(data.coverImage || null);
       setTags(data.tags.map((t: { tag: { name: string } }) => t.tag.name).join(", "));
       setIsDraft(data.isDraft);
       setLoading(false);
     }
     fetchArticle();
   }, [slug, router, session, sessionStatus]);
+
+  async function handleCoverImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("图片不能超过 5MB");
+      return;
+    }
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast.error("只支持 JPG、PNG、GIF、WebP 格式");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "上传失败");
+      } else {
+        setCoverImage(data.url);
+      }
+    } catch {
+      toast.error("上传失败");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +108,7 @@ export default function EditArticlePage({
         body: JSON.stringify({
           title,
           content,
+          coverImage: coverImage ?? "",
           tags: tags
             .split(",")
             .map((t) => t.trim())
@@ -124,6 +161,60 @@ export default function EditArticlePage({
             <div className="space-y-2">
               <Label>内容</Label>
               <RichTextEditor content={content} onChange={setContent} />
+            </div>
+
+            {/* Cover image upload */}
+            <div className="space-y-2">
+              <Label>封面图片</Label>
+              {coverImage ? (
+                <div className="relative inline-block">
+                  <Image
+                    src={coverImage}
+                    alt="cover"
+                    width={320}
+                    height={180}
+                    className="rounded-lg object-cover border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage(null)}
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-[#7c3aed] hover:text-[#7c3aed] transition-colors disabled:opacity-50"
+                >
+                  {uploading ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      上传中...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      添加封面图片
+                    </>
+                  )}
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleCoverImageSelect}
+              />
             </div>
 
             <div className="space-y-2">

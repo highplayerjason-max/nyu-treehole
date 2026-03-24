@@ -30,6 +30,7 @@ interface ArticleDetail {
   } | null;
   _count?: { likes: number };
   likedByMe?: boolean;
+  isOwner?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,11 +74,12 @@ export default function BlogArticlePage({
 
   if (!article) return null;
 
-  const isAuthor = session?.user?.id === article.author.id;
+  const isOwner = article.isOwner === true;
   const isAdmin = session?.user?.role === "ADMIN";
+  const canManage = isOwner || isAdmin;
 
   async function handleDeleteTag(tagId: string) {
-    if (!(isAuthor || isAdmin)) return;
+    if (!canManage) return;
     if (!window.confirm("确认删除这个标签吗？")) return;
 
     setDeletingTagId(tagId);
@@ -186,7 +188,7 @@ export default function BlogArticlePage({
             </p>
           </div>
           <div className="flex-1" />
-          {(isAuthor || isAdmin) && (
+          {canManage && (
             <>
               <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/blog/${slug}/edit`} />}>
                 编辑
@@ -211,7 +213,7 @@ export default function BlogArticlePage({
                 <Link href={`/blog?tag=${encodeURIComponent(tag.name)}`}>
                   <Badge variant="secondary">{tag.name}</Badge>
                 </Link>
-                {(isAuthor || isAdmin) && (
+                {canManage && (
                   <Button
                     type="button"
                     variant="ghost"
