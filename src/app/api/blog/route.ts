@@ -9,24 +9,38 @@ import slugify from "slugify";
 
 // GET /api/blog - List articles
 export async function GET(req: NextRequest) {
+  const session = await auth();
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
   const limit = 12;
   const search = searchParams.get("search") || "";
   const tag = searchParams.get("tag") || "";
   const authorId = searchParams.get("author") || "";
+  const mine = searchParams.get("mine") === "true";
 
-  const where = {
-    status: ContentStatus.PUBLISHED,
-    isDraft: false,
-    ...(search
-      ? { title: { contains: search, mode: "insensitive" as const } }
-      : {}),
-    ...(tag
-      ? { tags: { some: { tag: { name: tag } } } }
-      : {}),
-    ...(authorId ? { authorId } : {}),
-  };
+  // "mine" mode: return current user's articles (published + drafts)
+  const where = mine && session?.user?.id
+    ? {
+        authorId: session.user.id,
+        status: ContentStatus.PUBLISHED,
+        ...(search
+          ? { title: { contains: search, mode: "insensitive" as const } }
+          : {}),
+        ...(tag
+          ? { tags: { some: { tag: { name: tag } } } }
+          : {}),
+      }
+    : {
+        status: ContentStatus.PUBLISHED,
+        isDraft: false,
+        ...(search
+          ? { title: { contains: search, mode: "insensitive" as const } }
+          : {}),
+        ...(tag
+          ? { tags: { some: { tag: { name: tag } } } }
+          : {}),
+        ...(authorId ? { authorId } : {}),
+      };
 
   const [articles, total] = await Promise.all([
     prisma.blogArticle.findMany({

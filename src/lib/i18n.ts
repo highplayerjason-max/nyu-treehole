@@ -76,6 +76,9 @@ export const translations = {
       prevPage: "上一页",
       nextPage: "下一页",
       clearFilter: "清除",
+      myArticles: "我的文章",
+      allArticles: "全部文章",
+      draft: "草稿",
     },
     courses: {
       title: "课评",
@@ -283,6 +286,9 @@ export const translations = {
       prevPage: "Previous",
       nextPage: "Next",
       clearFilter: "Clear",
+      myArticles: "My Articles",
+      allArticles: "All Articles",
+      draft: "Draft",
     },
     courses: {
       title: "Courses",

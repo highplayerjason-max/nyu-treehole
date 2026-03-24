@@ -10,6 +10,7 @@ interface ArticleCardProps {
     title: string;
     excerpt?: string | null;
     coverImage?: string | null;
+    isDraft?: boolean;
     author: { displayName: string };
     tags: { tag: { name: string } }[];
     series?: { title: string } | null;
@@ -34,10 +35,19 @@ export function ArticleCard({ article }: ArticleCardProps) {
               />
             </div>
           )}
-          {article.series && (
-            <p className="text-xs text-blue-500 mb-1">
-              {article.series.title}
-            </p>
+          {(article.series || article.isDraft) && (
+            <div className="flex items-center gap-2 mb-1">
+              {article.series && (
+                <span className="text-xs text-blue-500">
+                  {article.series.title}
+                </span>
+              )}
+              {article.isDraft && (
+                <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">
+                  草稿
+                </Badge>
+              )}
+            </div>
           )}
           <h3 className="font-semibold text-lg mb-2 line-clamp-2">
             {article.title}

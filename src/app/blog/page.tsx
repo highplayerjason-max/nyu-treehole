@@ -17,20 +17,24 @@ interface Article {
   title: string;
   excerpt?: string | null;
   coverImage?: string | null;
+  isDraft?: boolean;
   author: { id: string; displayName: string };
   tags: { tag: { name: string } }[];
   series?: { title: string } | null;
+  _count?: { likes: number };
   createdAt: string;
 }
 
 async function fetchArticlesPage(
   page: number,
   search: string,
-  tagFilter: string | null
+  tagFilter: string | null,
+  mine?: boolean
 ) {
   const params = new URLSearchParams({ page: page.toString() });
   if (search) params.set("search", search);
   if (tagFilter) params.set("tag", tagFilter);
+  if (mine) params.set("mine", "true");
 
   const res = await fetch(`/api/blog?${params}`);
   return res.json();
@@ -54,12 +58,14 @@ function BlogPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [showMine, setShowMine] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     async function loadArticles() {
-      const data = await fetchArticlesPage(page, search, tagFilter);
+      setLoading(true);
+      const data = await fetchArticlesPage(page, search, tagFilter, showMine);
 
       if (!active) return;
 
@@ -73,7 +79,7 @@ function BlogPage() {
     return () => {
       active = false;
     };
-  }, [page, search, tagFilter]);
+  }, [page, search, tagFilter, showMine]);
 
   return (
     <div className="container mx-auto max-w-6xl py-6 px-4">
@@ -86,9 +92,21 @@ function BlogPage() {
               <p className="text-sm text-muted-foreground">{t.blog.subtitle}</p>
             </div>
             {session && (
-              <Button nativeButton={false} render={<Link href="/blog/new" />}>
-                {t.blog.newArticle}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant={showMine ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setShowMine(!showMine);
+                    setPage(1);
+                  }}
+                >
+                  {showMine ? t.blog.allArticles : t.blog.myArticles}
+                </Button>
+                <Button nativeButton={false} render={<Link href="/blog/new" />}>
+                  {t.blog.newArticle}
+                </Button>
+              </div>
             )}
           </div>
 

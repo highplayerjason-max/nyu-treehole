@@ -44,6 +44,11 @@ export async function GET(
     return NextResponse.json({ error: "文章不存在" }, { status: 404 });
   }
 
+  // Draft articles are only visible to the author and admin
+  if (article.isDraft && viewerId !== article.authorId && session?.user?.role !== "ADMIN") {
+    return NextResponse.json({ error: "文章不存在" }, { status: 404 });
+  }
+
   const response = {
     ...article,
     isOwner: viewerId === article.authorId,
