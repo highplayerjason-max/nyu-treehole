@@ -28,8 +28,8 @@ jobs:
 
       - name: Export image to compressed tar
         run: |
-          docker save nyu-treehole:latest | gzip > /tmp/nyu-treehole.tar.gz
-          ls -lh /tmp/nyu-treehole.tar.gz
+          docker save nyu-treehole:latest | gzip > nyu-treehole.tar.gz
+          ls -lh nyu-treehole.tar.gz
 
       - name: Copy image to server via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -37,9 +37,10 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: root
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: /tmp/nyu-treehole.tar.gz
+          source: nyu-treehole.tar.gz
           target: /root
-          strip_components: 1
+          overwrite: true
+          timeout: 300s
 
       - name: Deploy on server via SSH
         uses: appleboy/ssh-action@v1
