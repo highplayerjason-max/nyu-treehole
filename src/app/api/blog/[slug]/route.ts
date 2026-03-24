@@ -9,6 +9,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const session = await auth();
+  const viewerId = session?.user?.id;
   const { slug } = await params;
 
   const article = await prisma.blogArticle.findUnique({
@@ -25,6 +27,16 @@ export async function GET(
           },
         },
       },
+      ...(viewerId
+        ? {
+            likes: {
+              where: { userId: viewerId },
+              select: { id: true },
+              take: 1,
+            },
+          }
+        : {}),
+      _count: { select: { likes: true } },
     },
   });
 
@@ -32,7 +44,13 @@ export async function GET(
     return NextResponse.json({ error: "文章不存在" }, { status: 404 });
   }
 
-  return NextResponse.json(article);
+  const response = {
+    ...article,
+    likedByMe: "likes" in article ? article.likes.length > 0 : false,
+    ...("likes" in article ? { likes: undefined } : {}),
+  };
+
+  return NextResponse.json(response);
 }
 
 // PUT /api/blog/[slug]

@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
         author: { select: { id: true, displayName: true } },
         tags: { include: { tag: true } },
         series: { select: { id: true, title: true } },
+        _count: { select: { likes: true } },
       },
     }),
     prisma.blogArticle.count({ where }),

@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LikeButton } from "@/components/shared/like-button";
 import { ReportButton } from "@/components/shared/report-button";
 import { BlogCommentSection } from "@/components/blog/blog-comment-section";
+import { toast } from "sonner";
 import Link from "next/link";
 
 interface ArticleDetail {
@@ -26,6 +28,8 @@ interface ArticleDetail {
     title: string;
     articles: { id: string; title: string; slug: string; seriesOrder: number | null }[];
   } | null;
+  _count?: { likes: number };
+  likedByMe?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +45,7 @@ export default function BlogArticlePage({
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -97,6 +102,25 @@ export default function BlogArticlePage({
       );
     } finally {
       setDeletingTagId(null);
+    }
+  }
+
+  async function handleDeleteArticle() {
+    if (!window.confirm("确认删除这篇文章吗？删除后不可恢复。")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/blog/${slug}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "删除失败");
+        setDeleting(false);
+        return;
+      }
+      toast.success("已删除");
+      router.push("/blog");
+    } catch {
+      toast.error("删除失败，请稍后重试");
+      setDeleting(false);
     }
   }
 
@@ -163,9 +187,20 @@ export default function BlogArticlePage({
           </div>
           <div className="flex-1" />
           {(isAuthor || isAdmin) && (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/blog/${slug}/edit`} />}>
-              编辑
-            </Button>
+            <>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/blog/${slug}/edit`} />}>
+                编辑
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                disabled={deleting}
+                onClick={handleDeleteArticle}
+              >
+                {deleting ? "删除中..." : "删除"}
+              </Button>
+            </>
           )}
         </div>
 
@@ -202,7 +237,12 @@ export default function BlogArticlePage({
 
         <Separator className="my-6" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 -ml-2">
+          <LikeButton
+            apiUrl={`/api/blog/${slug}/like`}
+            initialCount={article._count?.likes ?? 0}
+            initialLiked={article.likedByMe ?? false}
+          />
           <ReportButton contentType="article" contentId={article.slug} />
         </div>
 

@@ -91,6 +91,7 @@ export const translations = {
     sidebar: {
       home: "首页",
       trending: "热门话题",
+      trendingTags: "热门标签",
       noTags: "暂无热门话题",
       navigation: "导航",
       about: "关于",
@@ -226,6 +227,7 @@ export const translations = {
     sidebar: {
       home: "Home",
       trending: "Trending Topics",
+      trendingTags: "Trending Tags",
       noTags: "No trending topics yet",
       navigation: "Navigation",
       about: "About",

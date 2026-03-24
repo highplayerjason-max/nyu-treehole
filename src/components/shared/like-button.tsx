@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface LikeButtonProps {
-  postId: string;
+  /** @deprecated Use apiUrl instead for new integrations */
+  postId?: string;
+  /** Full API path for the like toggle endpoint, e.g. "/api/blog/my-slug/like" */
+  apiUrl?: string;
   initialCount: number;
   initialLiked?: boolean;
 }
 
 export function LikeButton({
   postId,
+  apiUrl,
   initialCount,
   initialLiked = false,
 }: LikeButtonProps) {
@@ -35,7 +39,8 @@ export function LikeButton({
 
     try {
       setPending(true);
-      const res = await fetch(`/api/treehole/${postId}/like`, {
+      const endpoint = apiUrl || `/api/treehole/${postId}/like`;
+      const res = await fetch(endpoint, {
         method: "POST",
       });
       const data = await res.json();

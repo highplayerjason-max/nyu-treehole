@@ -48,6 +48,7 @@ export async function GET(
     ...post,
     author: post.isAnonymous ? null : post.author,
     authorId: post.isAnonymous ? null : post.authorId,
+    isOwner: viewerId === post.authorId,
     likedByMe: "likes" in post ? post.likes.length > 0 : false,
     comments: post.comments.map((c) => ({
       ...c,

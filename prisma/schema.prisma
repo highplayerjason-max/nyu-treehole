@@ -149,6 +149,7 @@ model BlogArticle {
   tags     TagOnArticle[]
   reports  Report[]
   comments BlogComment[]
+  likes    Like[]
 
   @@index([slug])
   @@index([authorId])
@@ -200,9 +201,12 @@ model Like {
   user      User          @relation(fields: [userId], references: [id])
   postId    String?
   post      TreeholePost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  articleId String?
+  article   BlogArticle?  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt DateTime      @default(now())
 
   @@unique([userId, postId])
+  @@unique([userId, articleId])
 }
 
 model Report {

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LikeButton } from "@/components/shared/like-button";
 import { ReportButton } from "@/components/shared/report-button";
 import { CommentSection } from "@/components/treehole/comment-section";
+import { toast } from "sonner";
 import Link from "next/link";
 
 interface PostDetail {
@@ -20,6 +22,7 @@ interface PostDetail {
   imageUrl?: string | null;
   isAnonymous: boolean;
   author: { id: string; displayName: string } | null;
+  isOwner?: boolean;
   hashtags: { hashtag: { id: string; name: string } }[];
   comments: {
     id: string;
@@ -51,8 +54,10 @@ export default function TreeholePostPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const { data: session } = useSession();
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -81,6 +86,28 @@ export default function TreeholePostPage({
   async function refreshPost() {
     const data = await fetchPostDetail(id);
     setPost(data);
+  }
+
+  const canDelete =
+    post?.isOwner || session?.user?.role === "ADMIN";
+
+  async function handleDelete() {
+    if (!window.confirm("确认删除这条帖子吗？删除后不可恢复。")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/treehole/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "删除失败");
+        setDeleting(false);
+        return;
+      }
+      toast.success("已删除");
+      router.push("/treehole");
+    } catch {
+      toast.error("删除失败，请稍后重试");
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -160,6 +187,20 @@ export default function TreeholePostPage({
               initialLiked={post.likedByMe ?? false}
             />
             <ReportButton contentType="post" contentId={post.id} />
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground hover:text-red-500"
+                disabled={deleting}
+                onClick={handleDelete}
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {deleting ? "删除中..." : "删除"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -13,6 +13,7 @@ interface ArticleCardProps {
     author: { displayName: string };
     tags: { tag: { name: string } }[];
     series?: { title: string } | null;
+    _count?: { likes: number };
     createdAt: string;
   };
 }
@@ -64,6 +65,17 @@ export function ArticleCard({ article }: ArticleCardProps) {
             <span>{article.author.displayName}</span>
             <span>&middot;</span>
             <span>{new Date(article.createdAt).toLocaleDateString("zh-CN")}</span>
+            {(article._count?.likes ?? 0) > 0 && (
+              <>
+                <span>&middot;</span>
+                <span className="flex items-center gap-0.5">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  {article._count!.likes}
+                </span>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

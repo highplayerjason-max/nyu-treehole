@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/language-context";
@@ -12,18 +13,26 @@ interface TrendingTag {
 
 export function Sidebar() {
   const { t } = useLanguage();
+  const pathname = usePathname();
+  const isBlogPage = pathname.startsWith("/blog");
+
   const [tags, setTags] = useState<TrendingTag[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/hashtags/trending")
+    const endpoint = isBlogPage
+      ? "/api/tags/trending"
+      : "/api/hashtags/trending";
+
+    setLoading(true);
+    fetch(endpoint)
       .then((r) => r.json())
       .then((data) => {
         setTags(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [isBlogPage]);
 
   const navLinks = [
     { href: "/", label: t.sidebar.home },
@@ -55,7 +64,7 @@ export function Sidebar() {
       {/* Trending hashtags */}
       <div className="rounded-2xl border bg-card p-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-          {t.sidebar.trending}
+          {isBlogPage ? t.sidebar.trendingTags : t.sidebar.trending}
         </h3>
         {loading ? (
           <div className="space-y-2">
@@ -73,13 +82,17 @@ export function Sidebar() {
             {tags.map((tag) => (
               <Link
                 key={tag.name}
-                href={`/treehole?hashtag=${encodeURIComponent(tag.name)}`}
+                href={
+                  isBlogPage
+                    ? `/blog?tag=${encodeURIComponent(tag.name)}`
+                    : `/treehole?hashtag=${encodeURIComponent(tag.name)}`
+                }
               >
                 <Badge
                   variant="secondary"
                   className="cursor-pointer hover:bg-[#ddd3f1] transition-colors text-xs"
                 >
-                  #{tag.name}
+                  {isBlogPage ? "" : "#"}{tag.name}
                   <span className="ml-1 text-muted-foreground">
                     {tag.count}
                   </span>

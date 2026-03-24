@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ export default function EditArticlePage({
 }) {
   const { slug } = use(params);
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
@@ -26,6 +28,9 @@ export default function EditArticlePage({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    // Wait for session to load before checking authorization
+    if (sessionStatus === "loading") return;
+
     async function fetchArticle() {
       const res = await fetch(`/api/blog/${slug}`);
       if (!res.ok) {
@@ -33,6 +38,16 @@ export default function EditArticlePage({
         return;
       }
       const data = await res.json();
+
+      // Client-side auth guard: only author or admin can access the edit page
+      const isAuthor = session?.user?.id === data.author?.id;
+      const isAdmin = session?.user?.role === "ADMIN";
+      if (!isAuthor && !isAdmin) {
+        toast.error("无权限编辑此文章");
+        router.push(`/blog/${slug}`);
+        return;
+      }
+
       setTitle(data.title);
       setContent(data.content);
       setTags(data.tags.map((t: { tag: { name: string } }) => t.tag.name).join(", "));
@@ -40,7 +55,7 @@ export default function EditArticlePage({
       setLoading(false);
     }
     fetchArticle();
-  }, [slug, router]);
+  }, [slug, router, session, sessionStatus]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
