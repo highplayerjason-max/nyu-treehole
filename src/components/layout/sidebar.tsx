@@ -11,28 +11,54 @@ interface TrendingTag {
   count: number;
 }
 
+type TagScope = "blog" | "treehole";
+
 export function Sidebar() {
   const { t } = useLanguage();
   const pathname = usePathname();
-  const isBlogPage = pathname.startsWith("/blog");
+  const scope: TagScope = pathname.startsWith("/blog") ? "blog" : "treehole";
+  const isBlogPage = scope === "blog";
 
-  const [tags, setTags] = useState<TrendingTag[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tagState, setTagState] = useState<{
+    scope: TagScope | null;
+    tags: TrendingTag[];
+  }>({
+    scope: null,
+    tags: [],
+  });
+
+  const loading = tagState.scope !== scope;
+  const tags = tagState.scope === scope ? tagState.tags : [];
 
   useEffect(() => {
-    const endpoint = isBlogPage
+    const endpoint = scope === "blog"
       ? "/api/tags/trending"
       : "/api/hashtags/trending";
+    const controller = new AbortController();
 
-    setLoading(true);
-    fetch(endpoint)
+    fetch(endpoint, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
-        setTags(Array.isArray(data) ? data : []);
-        setLoading(false);
+        setTagState({
+          scope,
+          tags: Array.isArray(data) ? data : [],
+        });
       })
-      .catch(() => setLoading(false));
-  }, [isBlogPage]);
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setTagState({
+          scope,
+          tags: [],
+        });
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [scope]);
 
   const navLinks = [
     { href: "/", label: t.sidebar.home },
