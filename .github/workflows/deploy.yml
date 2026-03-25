@@ -1,13 +1,9 @@
-# 部署流程：
-# 1. GitHub Actions runner 上构建 Docker 镜像
-# 2. docker save 导出为 tar.gz（绕过 ghcr.io，解决国内服务器拉镜像超时）
-# 3. SCP 直传到阿里云服务器
-# 4. 服务器 docker load 加载镜像并重启服务
-name: Build & Deploy to Server
+name: Build and Deploy to Server
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -50,17 +46,32 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           command_timeout: 10m
           script: |
+            set -e
             cd /root/nyu-treehole
-            # 加载镜像
+
             docker load < nyu-treehole.tar.gz
-            # 清理传输文件
             rm -f nyu-treehole.tar.gz
-            # 重启服务（使用本地镜像，不再从 ghcr.io 拉取）
+
             docker compose up -d
-            # 等数据库就绪
-            sleep 5
-            # 执行数据库迁移
+
+            for i in $(seq 1 30); do
+              if docker compose exec -T app true >/dev/null 2>&1; then
+                break
+              fi
+
+              if [ "$i" -eq 30 ]; then
+                echo "App container did not become ready in time" >&2
+                exit 1
+              fi
+
+              sleep 2
+            done
+
             docker compose exec -T app npx prisma@6.19.2 migrate deploy
-            # 临时补丁
-            docker exec nyu-treehole-db-1 psql -U postgres -d student_community -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true
+
+            docker exec nyu-treehole-db-1 psql \
+              -U postgres \
+              -d student_community \
+              -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true
+
             echo "Deploy done at $(date)"
