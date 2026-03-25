@@ -46,13 +46,21 @@ function LoginPage() {
 
     setLoading(false);
 
-    if (result?.error) {
-      if (result.code === "email_not_verified") {
-        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-      } else {
+    // Handle email verification error - check both code and error message
+    if (result?.error === "EmailNotVerified" || result?.code === "email_not_verified") {
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+    } else if (result?.error) {
+      // Handle other authentication errors
+      if (result.error.includes("credentials") || result.error.includes("password")) {
         setError("邮箱或密码错误");
+      } else {
+        setError("登录失败，请稍后重试");
       }
+    } else if (!result?.ok) {
+      // Defensive check for other unexpected failures
+      setError("登录失败，请稍后重试");
     } else {
+      // Successful login
       router.push("/");
       router.refresh();
     }
