@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteUserAccount, UserNotFoundError } from "@/lib/user-deletion";
 
 export async function PATCH(
   req: NextRequest,
@@ -8,16 +9,15 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") {
-    return NextResponse.json({ error: "无权限" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
   const body = await req.json();
 
-  // Prevent self-demotion
   if (id === session.user.id) {
     return NextResponse.json(
-      { error: "不能修改自己的权限" },
+      { error: "You cannot change your own admin role here." },
       { status: 400 }
     );
   }
@@ -39,4 +39,31 @@ export async function PATCH(
   });
 
   return NextResponse.json(user);
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  try {
+    await deleteUserAccount(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof UserNotFoundError) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    console.error("Admin delete user error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete user" },
+      { status: 500 }
+    );
+  }
 }

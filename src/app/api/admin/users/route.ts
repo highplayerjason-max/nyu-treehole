@@ -13,14 +13,17 @@ export async function GET(req: NextRequest) {
   const limit = 20;
   const search = searchParams.get("search") || "";
 
-  const where = search
-    ? {
-        OR: [
-          { email: { contains: search, mode: "insensitive" as const } },
-          { displayName: { contains: search, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+  const where = {
+    emailVerified: true,
+    ...(search
+      ? {
+          OR: [
+            { email: { contains: search, mode: "insensitive" as const } },
+            { displayName: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({

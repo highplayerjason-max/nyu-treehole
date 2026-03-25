@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboard() {
   const [userCount, postCount, articleCount, pendingCount, reportCount] =
     await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { emailVerified: true } }),
       prisma.treeholePost.count({
         where: { status: ContentStatus.PUBLISHED },
       }),
