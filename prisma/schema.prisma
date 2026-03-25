@@ -41,6 +41,7 @@ model User {
   emailVerified Boolean  @default(false)
   passwordHash  String
   displayName   String
+  displayNameChangedAt DateTime?
   role          Role     @default(USER)
   isBanned      Boolean  @default(false)
   createdAt     DateTime @default(now())

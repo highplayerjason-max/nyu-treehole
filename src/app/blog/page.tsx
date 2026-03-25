@@ -103,7 +103,11 @@ function BlogPage() {
                 >
                   {showMine ? t.blog.allArticles : t.blog.myArticles}
                 </Button>
-                <Button nativeButton={false} render={<Link href="/blog/new" />}>
+                <Button
+                  nativeButton={false}
+                  render={<Link href="/blog/new" />}
+                  size="sm"
+                >
                   {t.blog.newArticle}
                 </Button>
               </div>

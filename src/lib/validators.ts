@@ -1,66 +1,114 @@
 import { z } from "zod";
 import { isAcceptedImageUrl } from "./uploads";
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  DISPLAY_NAME_MIN_LENGTH,
+} from "./display-name";
 
 export const nyuEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .email("请输入有效的邮箱地址")
-  .endsWith("@nyu.edu", "仅支持 NYU 邮箱（@nyu.edu）注册");
+  .email("\u8bf7\u8f93\u5165\u6709\u6548\u7684\u90ae\u7bb1\u5730\u5740")
+  .endsWith(
+    "@nyu.edu",
+    "\u4ec5\u652f\u6301 NYU \u90ae\u7bb1\uff08@nyu.edu\uff09\u6ce8\u518c"
+  );
 
 const optionalImageReferenceSchema = z
   .string()
   .trim()
   .refine(
     (value) => value === "" || isAcceptedImageUrl(value),
-    "图片地址必须是 /uploads/... 或 http/https 链接"
+    "\u56fe\u7247\u5730\u5740\u5fc5\u987b\u662f /uploads/... \u6216 http/https \u94fe\u63a5"
+  );
+
+export const displayNameSchema = z
+  .string()
+  .trim()
+  .min(
+    DISPLAY_NAME_MIN_LENGTH,
+    `\u6635\u79f0\u81f3\u5c11 ${DISPLAY_NAME_MIN_LENGTH} \u4e2a\u5b57\u7b26`
+  )
+  .max(
+    DISPLAY_NAME_MAX_LENGTH,
+    `\u6635\u79f0\u6700\u591a ${DISPLAY_NAME_MAX_LENGTH} \u4e2a\u5b57\u7b26`
   );
 
 export const registerSchema = z.object({
   email: nyuEmailSchema,
-  password: z.string().min(6, "密码至少 6 个字符"),
-  displayName: z.string().min(2, "昵称至少 2 个字符").max(20, "昵称最多 20 个字符"),
+  password: z
+    .string()
+    .min(6, "\u5bc6\u7801\u81f3\u5c11 6 \u4e2a\u5b57\u7b26"),
+  displayName: displayNameSchema,
 });
 
 export const resendVerificationSchema = z.object({
   email: nyuEmailSchema,
 });
 
+export const updateDisplayNameSchema = z.object({
+  displayName: displayNameSchema,
+});
+
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email("请输入有效的邮箱地址"),
-  password: z.string().min(1, "请输入密码"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("\u8bf7\u8f93\u5165\u6709\u6548\u7684\u90ae\u7bb1\u5730\u5740"),
+  password: z.string().min(1, "\u8bf7\u8f93\u5165\u5bc6\u7801"),
 });
 
 export const treeholePostSchema = z.object({
-  content: z.string().min(1, "内容不能为空").max(2000, "内容最多 2000 个字符"),
+  content: z
+    .string()
+    .min(1, "\u5185\u5bb9\u4e0d\u80fd\u4e3a\u7a7a")
+    .max(2000, "\u5185\u5bb9\u6700\u591a 2000 \u4e2a\u5b57\u7b26"),
   imageUrl: optionalImageReferenceSchema.optional().or(z.literal("")),
   isAnonymous: z.boolean().default(false),
 });
 
 export const treeholeCommentSchema = z.object({
-  content: z.string().min(1, "评论不能为空").max(500, "评论最多 500 个字符"),
+  content: z
+    .string()
+    .min(1, "\u8bc4\u8bba\u4e0d\u80fd\u4e3a\u7a7a")
+    .max(500, "\u8bc4\u8bba\u6700\u591a 500 \u4e2a\u5b57\u7b26"),
   isAnonymous: z.boolean().default(false),
   parentId: z.string().optional(),
 });
 
 export const blogArticleSchema = z.object({
-  title: z.string().min(1, "标题不能为空").max(200, "标题最多 200 个字符"),
-  content: z.string().min(1, "内容不能为空"),
-  excerpt: z.string().max(500, "摘要最多 500 个字符").optional(),
+  title: z
+    .string()
+    .min(1, "\u6807\u9898\u4e0d\u80fd\u4e3a\u7a7a")
+    .max(200, "\u6807\u9898\u6700\u591a 200 \u4e2a\u5b57\u7b26"),
+  content: z.string().min(1, "\u5185\u5bb9\u4e0d\u80fd\u4e3a\u7a7a"),
+  excerpt: z
+    .string()
+    .max(500, "\u6458\u8981\u6700\u591a 500 \u4e2a\u5b57\u7b26")
+    .optional(),
   coverImage: optionalImageReferenceSchema.optional().or(z.literal("")),
   isDraft: z.boolean().default(true),
-  tags: z.array(z.string()).max(10, "最多 10 个标签").default([]),
+  tags: z
+    .array(z.string())
+    .max(10, "\u6700\u591a 10 \u4e2a\u6807\u7b7e")
+    .default([]),
   seriesId: z.string().optional(),
   seriesOrder: z.number().int().positive().optional(),
 });
 
 export const reportSchema = z.object({
-  reason: z.string().max(500, "举报原因最多 500 个字符").optional(),
+  reason: z
+    .string()
+    .max(500, "\u4e3e\u62a5\u539f\u56e0\u6700\u591a 500 \u4e2a\u5b57\u7b26")
+    .optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+export type UpdateDisplayNameInput = z.infer<typeof updateDisplayNameSchema>;
 export type TreeholePostInput = z.infer<typeof treeholePostSchema>;
 export type TreeholeCommentInput = z.infer<typeof treeholeCommentSchema>;
 export type BlogArticleInput = z.infer<typeof blogArticleSchema>;

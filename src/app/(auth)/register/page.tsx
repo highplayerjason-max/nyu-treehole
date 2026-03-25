@@ -13,6 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  DISPLAY_NAME_MIN_LENGTH,
+} from "@/lib/display-name";
 
 function isNyuEmail(value: string) {
   return /^[^\s@]+@nyu\.edu$/i.test(value.trim());
@@ -39,7 +43,10 @@ export default function RegisterPage() {
       displayName,
     };
 
-    if (displayName.length < 2 || displayName.length > 20) {
+    if (
+      displayName.length < DISPLAY_NAME_MIN_LENGTH ||
+      displayName.length > DISPLAY_NAME_MAX_LENGTH
+    ) {
       setError("昵称需要在 2 到 20 个字符之间");
       setLoading(false);
       return;
@@ -114,8 +121,8 @@ export default function RegisterPage() {
               id="displayName"
               name="displayName"
               placeholder="你的昵称"
-              minLength={2}
-              maxLength={20}
+               minLength={DISPLAY_NAME_MIN_LENGTH}
+               maxLength={DISPLAY_NAME_MAX_LENGTH}
               required
             />
           </div>
