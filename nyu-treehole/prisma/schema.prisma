@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ContentStatus {
+  PUBLISHED
+  FLAGGED
+  REJECTED
+  DELETED
+}
+
+enum ModerationAction {
+  APPROVE
+  REJECT
+  DELETE
+}
+
+enum ContentType {
+  TREEHOLE_POST
+  TREEHOLE_COMMENT
+  BLOG_ARTICLE
+}
+
+// ─── Auth & Users ───
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  passwordHash  String
+  displayName   String
+  role          Role     @default(USER)
+  isBanned      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  posts                   TreeholePost[]
+  comments                TreeholeComment[]
+  blogComments            BlogComment[]
+  likes                   Like[]
+  reports                 Report[]                 @relation("ReportedBy")
+  articles                BlogArticle[]
+  series                  BlogSeries[]
+  emailVerificationTokens EmailVerificationToken[]
+  moderationLogs          ModerationLog[]          @relation("ModeratedBy")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ─── TreeHole ───
+
+model TreeholePost {
+  id          String        @id @default(cuid())
+  content     String
+  imageUrl    String?
+  isAnonymous Boolean       @default(false)
+  status      ContentStatus @default(PUBLISHED)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  comments TreeholeComment[]
+  likes    Like[]
+  reports  Report[]
+  hashtags HashtagOnPost[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+model TreeholeComment {
+  id          String        @id @default(cuid())
+  content     String
+  isAnonymous Boolean       @default(false)
+  status      ContentStatus @default(PUBLISHED)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  postId      String
+  post        TreeholePost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      TreeholeComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     TreeholeComment[] @relation("CommentReplies")
+  createdAt   DateTime      @default(now())
+
+  reports Report[]
+
+  @@index([postId, createdAt])
+}
+
+model Hashtag {
+  id       String          @id @default(cuid())
+  name     String          @unique
+  isBanned Boolean         @default(false)
+  posts    HashtagOnPost[]
+}
+
+model HashtagOnPost {
+  postId    String
+  hashtagId String
+  post      TreeholePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag   Hashtag      @relation(fields: [hashtagId], references: [id])
+
+  @@id([postId, hashtagId])
+}
+
+// ─── Blog ───
+
+model BlogArticle {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  content     String
+  excerpt     String?
+  coverImage  String?
+  isDraft     Boolean       @default(true)
+  status      ContentStatus @default(PUBLISHED)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  seriesId    String?
+  series      BlogSeries?   @relation(fields: [seriesId], references: [id])
+  seriesOrder Int?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tags     TagOnArticle[]
+  reports  Report[]
+  comments BlogComment[]
+  likes    Like[]
+
+  @@index([slug])
+  @@index([authorId])
+  @@index([status, createdAt])
+}
+
+model BlogComment {
+  id        String      @id @default(cuid())
+  content   String
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id])
+  articleId String
+  article   BlogArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  @@index([articleId, createdAt])
+}
+
+model BlogSeries {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  articles    BlogArticle[]
+  createdAt   DateTime      @default(now())
+}
+
+model Tag {
+  id       String         @id @default(cuid())
+  name     String         @unique
+  articles TagOnArticle[]
+}
+
+model TagOnArticle {
+  articleId String
+  tagId     String
+  article   BlogArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag         @relation(fields: [tagId], references: [id])
+
+  @@id([articleId, tagId])
+}
+
+// ─── Shared: Likes, Reports, Moderation ───
+
+model Like {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  postId    String?
+  post      TreeholePost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  articleId String?
+  article   BlogArticle?  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([userId, postId])
+  @@unique([userId, articleId])
+}
+
+model Report {
+  id          String           @id @default(cuid())
+  reason      String?
+  contentType ContentType
+  reporterId  String
+  reporter    User             @relation("ReportedBy", fields: [reporterId], references: [id])
+  postId      String?
+  post        TreeholePost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId   String?
+  comment     TreeholeComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  articleId   String?
+  article     BlogArticle?     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@index([postId])
+  @@index([commentId])
+  @@index([articleId])
+}
+
+model ModerationLog {
+  id          String           @id @default(cuid())
+  contentType ContentType
+  contentId   String
+  action      ModerationAction
+  reason      String?
+  isAutomatic Boolean          @default(false)
+  moderatorId String?
+  moderator   User?            @relation("ModeratedBy", fields: [moderatorId], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([contentType, contentId])
+}
