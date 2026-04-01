@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -230,11 +230,7 @@ export function CommentSection({
     }
   }
 
-  function CommentComposer({
-    mode,
-  }: {
-    mode: "create" | "edit";
-  }) {
+  function renderCommentComposer(mode: "create" | "edit") {
     const currentContent = mode === "create" ? content : editContent;
     const currentImage = mode === "create" ? imageUrl : editImageUrl;
     const currentLoading =
@@ -357,13 +353,7 @@ export function CommentSection({
     );
   }
 
-  function CommentItem({
-    comment,
-    depth = 0,
-  }: {
-    comment: Comment;
-    depth?: number;
-  }) {
+  function renderCommentItem(comment: Comment, depth = 0) {
     const commentReplies = getReplies(comment.id);
     const canManage = comment.isOwner || session?.user?.role === "ADMIN";
     const isEditing = editingId === comment.id;
@@ -391,7 +381,7 @@ export function CommentSection({
 
             {isEditing ? (
               <div className="mt-2 space-y-3">
-                <CommentComposer mode="edit" />
+                {renderCommentComposer("edit")}
               </div>
             ) : (
               <>
@@ -444,7 +434,9 @@ export function CommentSection({
         </div>
 
         {commentReplies.map((reply) => (
-          <CommentItem key={reply.id} comment={reply} depth={depth + 1} />
+          <Fragment key={reply.id}>
+            {renderCommentItem(reply, depth + 1)}
+          </Fragment>
         ))}
       </div>
     );
@@ -468,7 +460,7 @@ export function CommentSection({
               </button>
             </div>
           )}
-          <CommentComposer mode="create" />
+          {renderCommentComposer("create")}
         </form>
       )}
 
@@ -479,7 +471,7 @@ export function CommentSection({
           </p>
         ) : (
           topLevel.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
+            <Fragment key={comment.id}>{renderCommentItem(comment)}</Fragment>
           ))
         )}
       </div>
