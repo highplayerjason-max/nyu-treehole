@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface TagRow {
   id: string;
   name: string;
+  scope: "TREEHOLE" | "GYM";
   isBanned: boolean;
   _count: { posts: number };
   publishedCount: number;
 }
 
-async function fetchTagRows(search: string, filter: "all" | "active" | "banned") {
-  const params = new URLSearchParams({ filter });
+async function fetchTagRows(
+  search: string,
+  filter: "all" | "active" | "banned",
+  scope: "treehole" | "gym"
+) {
+  const params = new URLSearchParams({ filter, scope });
   if (search) params.set("search", search);
 
   const res = await fetch(`/api/admin/tags?${params}`);
@@ -29,16 +34,15 @@ export default function AdminTagsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "banned">("all");
+  const [scope, setScope] = useState<"treehole" | "gym">("treehole");
   const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     async function loadTags() {
-      const nextTags = await fetchTagRows(search, filter);
-
+      const nextTags = await fetchTagRows(search, filter, scope);
       if (!active) return;
-
       setTags(nextTags);
       setLoading(false);
     }
@@ -48,85 +52,117 @@ export default function AdminTagsPage() {
     return () => {
       active = false;
     };
-  }, [search, filter]);
+  }, [filter, scope, search]);
+
+  async function reload() {
+    setLoading(true);
+    const nextTags = await fetchTagRows(search, filter, scope);
+    setTags(nextTags);
+    setLoading(false);
+  }
 
   async function handleBanToggle(tag: TagRow) {
-    const next = !tag.isBanned;
-    const confirmMsg = next
-      ? `屏蔽 #${tag.name}？屏蔽后此标签将从热门话题中隐藏，且新帖无法使用。`
-      : `解除屏蔽 #${tag.name}？`;
-    if (!confirm(confirmMsg)) return;
+    const nextValue = !tag.isBanned;
+    const confirmed = window.confirm(
+      nextValue
+        ? `Ban #${tag.name} for new posts?`
+        : `Allow #${tag.name} again?`
+    );
+
+    if (!confirmed) return;
 
     setActionId(tag.id);
     const res = await fetch(`/api/admin/tags/${tag.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isBanned: next }),
+      body: JSON.stringify({ isBanned: nextValue }),
     });
+
     if (res.ok) {
-      toast.success(next ? `已屏蔽 #${tag.name}` : `已解除屏蔽 #${tag.name}`);
-      setLoading(true);
-      const nextTags = await fetchTagRows(search, filter);
-      setTags(nextTags);
-      setLoading(false);
+      toast.success(
+        nextValue ? `Banned #${tag.name}` : `Removed ban for #${tag.name}`
+      );
+      await reload();
     } else {
-      toast.error("操作失败");
+      toast.error("Tag update failed.");
     }
+
     setActionId(null);
   }
 
   async function handleDelete(tag: TagRow) {
-    if (
-      !confirm(
-        `永久删除 #${tag.name}？\n\n此标签将从所有帖子中移除，操作不可撤销。`
-      )
-    )
-      return;
+    const confirmed = window.confirm(
+      `Permanently delete #${tag.name}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
 
     setActionId(tag.id);
     const res = await fetch(`/api/admin/tags/${tag.id}`, { method: "DELETE" });
+
     if (res.ok) {
-      toast.success(`已删除 #${tag.name}`);
-      setLoading(true);
-      const nextTags = await fetchTagRows(search, filter);
-      setTags(nextTags);
-      setLoading(false);
+      toast.success(`Deleted #${tag.name}`);
+      await reload();
     } else {
-      toast.error("删除失败");
+      toast.error("Tag deletion failed.");
     }
+
     setActionId(null);
   }
 
   const totalCount = tags.length;
-  const bannedCount = tags.filter((t) => t.isBanned).length;
+  const bannedCount = tags.filter((tag) => tag.isBanned).length;
+  const scopeLabel = scope === "treehole" ? "Treehole" : "Gym";
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">话题标签管理</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            管理树洞热门话题，屏蔽或删除不当标签
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Tag Management</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage {scopeLabel} hashtags independently so Treehole and Gym do
+          not interfere with each other.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="mb-4 flex gap-2">
+        <Button
+          size="sm"
+          variant={scope === "treehole" ? "default" : "outline"}
+          onClick={() => {
+            setLoading(true);
+            setScope("treehole");
+          }}
+        >
+          Treehole tags
+        </Button>
+        <Button
+          size="sm"
+          variant={scope === "gym" ? "default" : "outline"}
+          onClick={() => {
+            setLoading(true);
+            setScope("gym");
+          }}
+        >
+          Gym tags
+        </Button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              标签总数
+              Total tags
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-blue-600">{totalCount}</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              正常标签
+              Active tags
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -135,10 +171,11 @@ export default function AdminTagsPage() {
             </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              已屏蔽
+              Banned tags
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -147,65 +184,67 @@ export default function AdminTagsPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <Input
-          placeholder="搜索标签..."
+          placeholder="Search tags..."
           value={search}
-          onChange={(e) => {
+          onChange={(event) => {
             setLoading(true);
-            setSearch(e.target.value);
+            setSearch(event.target.value);
           }}
           className="max-w-xs"
         />
+
         <div className="flex gap-1">
-          {(["all", "active", "banned"] as const).map((f) => (
+          {(["all", "active", "banned"] as const).map((value) => (
             <Button
-              key={f}
+              key={value}
               size="sm"
-              variant={filter === f ? "default" : "outline"}
+              variant={filter === value ? "default" : "outline"}
               onClick={() => {
                 setLoading(true);
-                setFilter(f);
+                setFilter(value);
               }}
             >
-              {f === "all" ? "全部" : f === "active" ? "正常" : "已屏蔽"}
+              {value === "all"
+                ? "All"
+                : value === "active"
+                ? "Active"
+                : "Banned"}
             </Button>
           ))}
         </div>
       </div>
 
-      {/* Tag list */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">加载中...</div>
+        <div className="py-12 text-center text-muted-foreground">
+          Loading tags...
+        </div>
       ) : tags.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无标签</div>
+        <div className="py-12 text-center text-muted-foreground">
+          No tags found.
+        </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="overflow-hidden rounded-lg border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">标签名</th>
-                <th className="text-left px-4 py-3 font-medium">帖子数（发布）</th>
-                <th className="text-left px-4 py-3 font-medium">帖子总数</th>
-                <th className="text-left px-4 py-3 font-medium">状态</th>
-                <th className="text-right px-4 py-3 font-medium">操作</th>
+                <th className="px-4 py-3 text-left font-medium">Tag</th>
+                <th className="px-4 py-3 text-left font-medium">Published</th>
+                <th className="px-4 py-3 text-left font-medium">All usage</th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {tags.map((tag) => (
-                <tr
-                  key={tag.id}
-                  className={`hover:bg-muted/30 transition-colors ${
-                    tag.isBanned ? "opacity-60" : ""
-                  }`}
-                >
+                <tr key={tag.id} className={tag.isBanned ? "opacity-60" : ""}>
                   <td className="px-4 py-3 font-medium">
                     <span
                       className={
                         tag.isBanned
-                          ? "text-muted-foreground line-through"
-                          : "text-[#7c3aed]"
+                          ? "line-through text-muted-foreground"
+                          : "text-amber-600"
                       }
                     >
                       #{tag.name}
@@ -220,14 +259,14 @@ export default function AdminTagsPage() {
                   <td className="px-4 py-3">
                     {tag.isBanned ? (
                       <Badge variant="destructive" className="text-xs">
-                        已屏蔽
+                        Banned
                       </Badge>
                     ) : (
                       <Badge
                         variant="secondary"
-                        className="text-xs bg-green-100 text-green-700"
+                        className="bg-green-100 text-xs text-green-700"
                       >
-                        正常
+                        Active
                       </Badge>
                     )}
                   </td>
@@ -238,13 +277,8 @@ export default function AdminTagsPage() {
                         variant={tag.isBanned ? "outline" : "secondary"}
                         disabled={actionId === tag.id}
                         onClick={() => handleBanToggle(tag)}
-                        className={
-                          !tag.isBanned
-                            ? "text-orange-600 hover:text-orange-700"
-                            : ""
-                        }
                       >
-                        {tag.isBanned ? "解除屏蔽" : "屏蔽"}
+                        {tag.isBanned ? "Unban" : "Ban"}
                       </Button>
                       <Button
                         size="sm"
@@ -252,7 +286,7 @@ export default function AdminTagsPage() {
                         disabled={actionId === tag.id}
                         onClick={() => handleDelete(tag)}
                       >
-                        删除
+                        Delete
                       </Button>
                     </div>
                   </td>

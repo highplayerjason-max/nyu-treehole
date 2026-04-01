@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,19 +11,24 @@ import { ReportButton } from "@/components/shared/report-button";
 import { useLanguage } from "@/contexts/language-context";
 import type { Lang } from "@/lib/i18n";
 
+type CommunityRoute = "treehole" | "gym";
+
 interface CommentPreview {
   id: string;
   content: string;
+  imageUrl?: string | null;
   isAnonymous: boolean;
   createdAt: string;
   author: { id: string; displayName: string } | null;
 }
 
 interface PostCardProps {
+  board?: CommunityRoute;
   post: {
     id: string;
     content: string;
     imageUrl?: string | null;
+    status?: string;
     isAnonymous: boolean;
     author: { id: string; displayName: string } | null;
     hashtags: { hashtag: { id: string; name: string } }[];
@@ -49,6 +54,7 @@ function formatTime(dateStr: string, lang: Lang) {
     if (days < 30) return `${days}d ago`;
     return date.toLocaleDateString("en-US");
   }
+
   if (minutes < 1) return "刚刚";
   if (minutes < 60) return `${minutes}分钟前`;
   if (hours < 24) return `${hours}小时前`;
@@ -56,31 +62,41 @@ function formatTime(dateStr: string, lang: Lang) {
   return date.toLocaleDateString("zh-CN");
 }
 
-function renderContentWithHashtags(content: string) {
+function renderContentWithHashtags(content: string, board: CommunityRoute) {
   const parts = content.split(/(#[\w\u4e00-\u9fa5]+)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("#")) {
-      const tag = part.slice(1);
-      return (
-        <Link
-          key={i}
-          href={`/treehole?hashtag=${encodeURIComponent(tag)}`}
-          className="text-[#7c3aed] hover:underline"
-        >
-          {part}
-        </Link>
-      );
+  return parts.map((part, index) => {
+    if (!part.startsWith("#")) {
+      return <span key={index}>{part}</span>;
     }
-    return <span key={i}>{part}</span>;
+
+    const tag = part.slice(1);
+    return (
+      <Link
+        key={index}
+        href={`/${board}?hashtag=${encodeURIComponent(tag)}`}
+        className="text-[#7c3aed] hover:underline"
+      >
+        {part}
+      </Link>
+    );
   });
 }
 
-export function PostCard({ post }: PostCardProps) {
+function statusLabel(status?: string) {
+  switch (status) {
+    case "FLAGGED":
+      return "审核中";
+    case "REJECTED":
+      return "已拒绝";
+    default:
+      return null;
+  }
+}
+
+export function PostCard({ board = "treehole", post }: PostCardProps) {
   const { lang, t } = useLanguage();
   const previewComments = post.comments?.slice(0, 3) ?? [];
   const hasMoreComments = post._count.comments > previewComments.length;
-
-  // Translation state
   const [translated, setTranslated] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [showTranslated, setShowTranslated] = useState(false);
@@ -90,6 +106,7 @@ export function PostCard({ post }: PostCardProps) {
       setShowTranslated(!showTranslated);
       return;
     }
+
     setTranslating(true);
     try {
       const res = await fetch("/api/translate", {
@@ -107,35 +124,45 @@ export function PostCard({ post }: PostCardProps) {
     }
   }
 
+  const detailHref = `/${board}/${post.id}`;
   const viewAllText =
     lang === "zh"
       ? `${t.treehole.viewAllPrefix} ${post._count.comments} ${t.treehole.viewAllSuffix}`
       : `${t.treehole.viewAllPrefix} ${post._count.comments} ${t.treehole.viewAllSuffix}`;
 
+  const moderationBadge = statusLabel(post.status);
+
   return (
     <Card className="transition-shadow hover:shadow-md">
       <CardContent className="pt-4">
-        {/* Author info */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="mb-3 flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs bg-[#ddd3f1] text-[#57068c]">
-              {post.author ? post.author.displayName.charAt(0) : (lang === "zh" ? "匿" : "A")}
+              {post.author
+                ? post.author.displayName.charAt(0)
+                : lang === "zh"
+                ? "匿"
+                : "A"}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
               {post.author ? post.author.displayName : t.treehole.anonymousUser}
             </p>
             <p className="text-xs text-muted-foreground">
               {formatTime(post.createdAt, lang)}
             </p>
           </div>
+          {moderationBadge && (
+            <Badge variant="outline" className="text-xs">
+              {moderationBadge}
+            </Badge>
+          )}
         </div>
 
-        {/* Content */}
-        <Link href={`/treehole/${post.id}`} className="block">
-          <p className="text-sm whitespace-pre-wrap break-words mb-3 leading-relaxed">
-            {renderContentWithHashtags(post.content)}
+        <Link href={detailHref} className="block">
+          <p className="mb-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
+            {renderContentWithHashtags(post.content, board)}
           </p>
           {post.imageUrl && (
             <div className="mb-3">
@@ -144,33 +171,31 @@ export function PostCard({ post }: PostCardProps) {
                 alt="post image"
                 width={480}
                 height={320}
-                className="rounded-xl object-cover max-h-72 w-auto border border-border"
+                className="max-h-72 w-auto rounded-xl border border-border object-cover"
               />
             </div>
           )}
         </Link>
 
-        {/* Translated content */}
         {showTranslated && translated && (
           <div className="mb-3 rounded-xl border border-[#ddd3f1] bg-[#f5f0fb] px-3 py-2">
-            <p className="text-xs text-[#57068c] font-medium mb-1">
+            <p className="mb-1 text-xs font-medium text-[#57068c]">
               {t.translate.translated}
             </p>
-            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
               {translated}
             </p>
           </div>
         )}
 
-        {/* Hashtags */}
         {post.hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
+          <div className="mb-3 flex flex-wrap gap-1">
             {post.hashtags.map(({ hashtag }) => (
               <Link
                 key={hashtag.id}
-                href={`/treehole?hashtag=${encodeURIComponent(hashtag.name)}`}
+                href={`/${board}?hashtag=${encodeURIComponent(hashtag.name)}`}
               >
-                <Badge variant="secondary" className="text-xs cursor-pointer">
+                <Badge variant="secondary" className="cursor-pointer text-xs">
                   #{hashtag.name}
                 </Badge>
               </Link>
@@ -178,57 +203,68 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-1 -ml-2 mb-3">
+        <div className="-ml-2 mb-3 flex items-center gap-1">
           <LikeButton
-            postId={post.id}
+            apiUrl={`/api/${board}/${post.id}/like`}
             initialCount={post._count.likes}
             initialLiked={post.likedByMe ?? false}
           />
-          <Link href={`/treehole/${post.id}`}>
-            <button className="inline-flex items-center h-8 px-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <Link href={detailHref}>
+            <button className="inline-flex h-8 items-center px-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <svg
+                className="mr-1 h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
               </svg>
               {post._count.comments}
             </button>
           </Link>
-          {/* Translate button */}
           <button
             onClick={handleTranslate}
             disabled={translating}
-            className="inline-flex items-center h-8 px-2 text-xs text-muted-foreground hover:text-[#7c3aed] transition-colors disabled:opacity-50"
+            className="inline-flex h-8 items-center px-2 text-xs text-muted-foreground transition-colors hover:text-[#7c3aed] disabled:opacity-50"
           >
-            <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
             {translating
               ? t.translate.translating
               : showTranslated
               ? t.translate.showOriginal
               : t.translate.button}
           </button>
-          <ReportButton contentType="post" contentId={post.id} />
+          <ReportButton
+            contentType="post"
+            contentId={post.id}
+            apiUrl={`/api/${board}/${post.id}/report`}
+          />
         </div>
 
-        {/* Comment preview */}
         {previewComments.length > 0 && (
-          <Link href={`/treehole/${post.id}`} className="block">
-            <div className="rounded-xl bg-secondary/60 px-3 py-2 space-y-1.5">
-              {previewComments.map((c) => (
-                <div key={c.id} className="flex gap-1.5 items-baseline min-w-0">
-                  <span className="text-xs font-medium text-[#57068c] shrink-0">
-                    {c.author ? c.author.displayName : t.treehole.anonymousShort}
+          <Link href={detailHref} className="block">
+            <div className="space-y-1.5 rounded-xl bg-secondary/60 px-3 py-2">
+              {previewComments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="flex min-w-0 gap-1.5 items-baseline"
+                >
+                  <span className="shrink-0 text-xs font-medium text-[#57068c]">
+                    {comment.author
+                      ? comment.author.displayName
+                      : t.treehole.anonymousShort}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate">
-                    {c.content}
+                  <span className="truncate text-xs text-muted-foreground">
+                    {comment.content || (comment.imageUrl ? "[image]" : "")}
                   </span>
                 </div>
               ))}
               {hasMoreComments && (
-                <p className="text-xs text-muted-foreground/70">
-                  {viewAllText}
-                </p>
+                <p className="text-xs text-muted-foreground/70">{viewAllText}</p>
               )}
             </div>
           </Link>

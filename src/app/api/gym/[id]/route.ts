@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return getCommunityPost(id, CommunityBoard.TREEHOLE);
+  return getCommunityPost(id, CommunityBoard.GYM);
 }
 
 export async function PUT(
@@ -19,7 +19,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return updateCommunityPost(req, id, CommunityBoard.TREEHOLE);
+  return updateCommunityPost(req, id, CommunityBoard.GYM);
 }
 
 export async function DELETE(
@@ -27,5 +27,5 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return deleteCommunityPost(id, CommunityBoard.TREEHOLE);
+  return deleteCommunityPost(id, CommunityBoard.GYM);
 }

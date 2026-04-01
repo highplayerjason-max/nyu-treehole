@@ -63,20 +63,35 @@ export const loginSchema = z.object({
 export const treeholePostSchema = z.object({
   content: z
     .string()
-    .min(1, "\u5185\u5bb9\u4e0d\u80fd\u4e3a\u7a7a")
-    .max(2000, "\u5185\u5bb9\u6700\u591a 2000 \u4e2a\u5b57\u7b26"),
+    .trim()
+    .max(2000, "\u5185\u5bb9\u6700\u591a 2000 \u4e2a\u5b57\u7b26")
+    .default(""),
   imageUrl: optionalImageReferenceSchema.optional().or(z.literal("")),
   isAnonymous: z.boolean().default(false),
-});
+}).refine(
+  (value) => value.content.length > 0 || Boolean(value.imageUrl),
+  {
+    message: "\u5185\u5bb9\u6216\u56fe\u7247\u81f3\u5c11\u586b\u5199\u4e00\u9879",
+    path: ["content"],
+  }
+);
 
 export const treeholeCommentSchema = z.object({
   content: z
     .string()
-    .min(1, "\u8bc4\u8bba\u4e0d\u80fd\u4e3a\u7a7a")
-    .max(500, "\u8bc4\u8bba\u6700\u591a 500 \u4e2a\u5b57\u7b26"),
+    .trim()
+    .max(500, "\u8bc4\u8bba\u6700\u591a 500 \u4e2a\u5b57\u7b26")
+    .default(""),
+  imageUrl: optionalImageReferenceSchema.optional().or(z.literal("")),
   isAnonymous: z.boolean().default(false),
   parentId: z.string().optional(),
-});
+}).refine(
+  (value) => value.content.length > 0 || Boolean(value.imageUrl),
+  {
+    message: "\u8bc4\u8bba\u6587\u5b57\u6216\u56fe\u7247\u81f3\u5c11\u586b\u5199\u4e00\u9879",
+    path: ["content"],
+  }
+);
 
 export const blogArticleSchema = z.object({
   title: z

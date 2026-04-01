@@ -4,6 +4,7 @@ export const translations = {
   zh: {
     nav: {
       treehole: "树洞",
+      gym: "Gym",
       blog: "博客",
       courses: "课评",
       admin: "管理后台",
@@ -59,6 +60,21 @@ export const translations = {
       viewAllPrefix: "查看全部",
       viewAllSuffix: "条评论 →",
       noContent: "还没有帖子，来发第一条吧",
+    },
+    gym: {
+      title: "Gym",
+      subtitle: "面向技术与知识学习的一站式打卡区",
+      placeholder:
+        "今天学了什么？在练什么？读了什么资料？用 #标签 标记主题",
+      post: "发布打卡",
+      loading: "加载中...",
+      loadMore: "加载更多",
+      allPosts: "全部打卡",
+      myPosts: "我的 Gym",
+      clearFilter: "清除筛选",
+      noPosts: "还没有学习打卡",
+      beFirst: "从第一条学习记录开始吧",
+      back: "返回 Gym",
     },
     blog: {
       title: "博客",
@@ -214,6 +230,7 @@ export const translations = {
   en: {
     nav: {
       treehole: "Treehole",
+      gym: "Gym",
       blog: "Blog",
       courses: "Courses",
       admin: "Admin",
@@ -269,6 +286,22 @@ export const translations = {
       viewAllPrefix: "View all",
       viewAllSuffix: "comments →",
       noContent: "No posts yet. Be the first!",
+    },
+    gym: {
+      title: "Gym",
+      subtitle:
+        "A shared check-in space for technical and knowledge-based learning",
+      placeholder:
+        "What did you learn today? What are you practicing or reading? Use #hashtags to mark topics",
+      post: "Post check-in",
+      loading: "Loading...",
+      loadMore: "Load more",
+      allPosts: "All check-ins",
+      myPosts: "My Gym",
+      clearFilter: "Clear filter",
+      noPosts: "No learning check-ins yet",
+      beFirst: "Start the first learning log",
+      back: "Back to Gym",
     },
     blog: {
       title: "Blog",

@@ -13,7 +13,7 @@ export async function DELETE(
   }
 
   const { name } = await params;
-  const hashtag = await prisma.hashtag.findUnique({
+  const hashtag = await prisma.hashtag.findFirst({
     where: { name: decodeURIComponent(name) },
     select: { id: true, name: true },
   });

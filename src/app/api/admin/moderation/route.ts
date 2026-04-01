@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ContentStatus } from "@prisma/client";
+import { ContentType, ModerationCaseStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -12,88 +12,119 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || "all";
 
+  const contentTypeFilter: ContentType[] =
+    type === "post"
+      ? [ContentType.TREEHOLE_POST]
+      : type === "comment"
+      ? [ContentType.TREEHOLE_COMMENT]
+      : type === "article"
+      ? [ContentType.BLOG_ARTICLE]
+      : [
+          ContentType.TREEHOLE_POST,
+          ContentType.TREEHOLE_COMMENT,
+          ContentType.BLOG_ARTICLE,
+        ];
+
+  const cases = await prisma.moderationCase.findMany({
+    where: {
+      status: ModerationCaseStatus.OPEN,
+      contentType: {
+        in: contentTypeFilter,
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
   const items: Array<{
     id: string;
     type: string;
-    content: string;
-    author: { displayName: string; email: string };
+    board: string | null;
+    source: string;
+    reason: string | null;
     reportCount: number;
+    content: string;
+    imageUrl: string | null;
+    author: { displayName: string; email: string };
     status: string;
     createdAt: Date;
   }> = [];
 
-  // Show content that is FLAGGED or has at least 1 report
-  const moderationWhere = {
-    OR: [
-      { status: ContentStatus.FLAGGED },
-      { reports: { some: {} } },
-    ],
-  };
+  for (const entry of cases) {
+    if (entry.contentType === "TREEHOLE_POST") {
+      const post = await prisma.treeholePost.findUnique({
+        where: { id: entry.contentId },
+        include: {
+          author: { select: { displayName: true, email: true } },
+        },
+      });
 
-  if (type === "all" || type === "post") {
-    const posts = await prisma.treeholePost.findMany({
-      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
+      if (!post || post.status === "DELETED") continue;
+
+      items.push({
+        id: post.id,
+        type: entry.contentType,
+        board: post.board,
+        source: entry.source,
+        reason: entry.reason,
+        reportCount: entry.reportCount,
+        content: post.content,
+        imageUrl: post.imageUrl,
+        author: post.author,
+        status: post.status,
+        createdAt: post.createdAt,
+      });
+      continue;
+    }
+
+    if (entry.contentType === "TREEHOLE_COMMENT") {
+      const comment = await prisma.treeholeComment.findUnique({
+        where: { id: entry.contentId },
+        include: {
+          author: { select: { displayName: true, email: true } },
+          post: { select: { board: true } },
+        },
+      });
+
+      if (!comment || comment.status === "DELETED") continue;
+
+      items.push({
+        id: comment.id,
+        type: entry.contentType,
+        board: comment.post.board,
+        source: entry.source,
+        reason: entry.reason,
+        reportCount: entry.reportCount,
+        content: comment.content,
+        imageUrl: comment.imageUrl,
+        author: comment.author,
+        status: comment.status,
+        createdAt: comment.createdAt,
+      });
+      continue;
+    }
+
+    const article = await prisma.blogArticle.findUnique({
+      where: { id: entry.contentId },
       include: {
         author: { select: { displayName: true, email: true } },
-        _count: { select: { reports: true } },
       },
-      orderBy: { createdAt: "desc" },
     });
-    posts.forEach((p) =>
-      items.push({
-        id: p.id,
-        type: "TREEHOLE_POST",
-        content: p.content,
-        author: p.author,
-        reportCount: p._count.reports,
-        status: p.status,
-        createdAt: p.createdAt,
-      })
-    );
-  }
 
-  if (type === "all" || type === "comment") {
-    const comments = await prisma.treeholeComment.findMany({
-      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
-      include: {
-        author: { select: { displayName: true, email: true } },
-        _count: { select: { reports: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    comments.forEach((c) =>
-      items.push({
-        id: c.id,
-        type: "TREEHOLE_COMMENT",
-        content: c.content,
-        author: c.author,
-        reportCount: c._count.reports,
-        status: c.status,
-        createdAt: c.createdAt,
-      })
-    );
-  }
+    if (!article || article.status === "DELETED") continue;
 
-  if (type === "all" || type === "article") {
-    const articles = await prisma.blogArticle.findMany({
-      where: { ...moderationWhere, status: { not: ContentStatus.DELETED } },
-      include: {
-        author: { select: { displayName: true, email: true } },
-        _count: { select: { reports: true } },
-      },
-      orderBy: { createdAt: "desc" },
+    items.push({
+      id: article.id,
+      type: entry.contentType,
+      board: null,
+      source: entry.source,
+      reason: entry.reason,
+      reportCount: entry.reportCount,
+      content: `[${article.title}] ${article.content.replace(/<[^>]*>/g, "").slice(0, 200)}`,
+      imageUrl: article.coverImage,
+      author: article.author,
+      status: article.status,
+      createdAt: article.createdAt,
     });
-    articles.forEach((a) =>
-      items.push({
-        id: a.id,
-        type: "BLOG_ARTICLE",
-        content: `[${a.title}] ${a.content.replace(/<[^>]*>/g, "").slice(0, 200)}`,
-        author: a.author,
-        reportCount: a._count.reports,
-        status: a.status,
-        createdAt: a.createdAt,
-      })
-    );
   }
 
   items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

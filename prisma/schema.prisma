@@ -33,6 +33,21 @@ enum ContentType {
   BLOG_ARTICLE
 }
 
+enum CommunityBoard {
+  TREEHOLE
+  GYM
+}
+
+enum ModerationCaseStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ModerationCaseSource {
+  AI
+  REPORT
+}
+
 // ─── Auth & Users ───
 
 model User {
@@ -56,6 +71,7 @@ model User {
   series                  BlogSeries[]
   emailVerificationTokens EmailVerificationToken[]
   moderationLogs          ModerationLog[]          @relation("ModeratedBy")
+  resolvedModerationCases ModerationCase[]         @relation("ResolvedBy")
 }
 
 model EmailVerificationToken {
@@ -77,6 +93,7 @@ model TreeholePost {
   id          String        @id @default(cuid())
   content     String
   imageUrl    String?
+  board       CommunityBoard @default(TREEHOLE)
   isAnonymous Boolean       @default(false)
   status      ContentStatus @default(PUBLISHED)
   authorId    String
@@ -90,12 +107,14 @@ model TreeholePost {
   hashtags HashtagOnPost[]
 
   @@index([status, createdAt])
+  @@index([board, status, createdAt])
   @@index([authorId])
 }
 
 model TreeholeComment {
   id          String        @id @default(cuid())
   content     String
+  imageUrl    String?
   isAnonymous Boolean       @default(false)
   status      ContentStatus @default(PUBLISHED)
   authorId    String
@@ -106,6 +125,7 @@ model TreeholeComment {
   parent      TreeholeComment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies     TreeholeComment[] @relation("CommentReplies")
   createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   reports Report[]
 
@@ -114,9 +134,12 @@ model TreeholeComment {
 
 model Hashtag {
   id       String          @id @default(cuid())
-  name     String          @unique
+  name     String
+  scope    CommunityBoard  @default(TREEHOLE)
   isBanned Boolean         @default(false)
   posts    HashtagOnPost[]
+
+  @@unique([scope, name])
 }
 
 model HashtagOnPost {
@@ -241,4 +264,23 @@ model ModerationLog {
   createdAt   DateTime         @default(now())
 
   @@index([contentType, contentId])
+}
+
+model ModerationCase {
+  id           String               @id @default(cuid())
+  contentType  ContentType
+  contentId    String
+  board        CommunityBoard?
+  source       ModerationCaseSource
+  status       ModerationCaseStatus @default(OPEN)
+  reason       String?
+  reportCount  Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?                @relation("ResolvedBy", fields: [resolvedById], references: [id])
+
+  @@unique([contentType, contentId])
+  @@index([status, createdAt])
 }

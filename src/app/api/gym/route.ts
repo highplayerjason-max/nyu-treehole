@@ -6,9 +6,9 @@ import {
 } from "@/lib/community-api";
 
 export async function GET(req: NextRequest) {
-  return listCommunityPosts(req, CommunityBoard.TREEHOLE);
+  return listCommunityPosts(req, CommunityBoard.GYM);
 }
 
 export async function POST(req: NextRequest) {
-  return createCommunityPost(req, CommunityBoard.TREEHOLE);
+  return createCommunityPost(req, CommunityBoard.GYM);
 }

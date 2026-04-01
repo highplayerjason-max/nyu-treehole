@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { reportSchema } from "@/lib/validators";
-import { ContentStatus } from "@prisma/client";
+import { openModerationCase } from "@/lib/community";
+import { ModerationCaseSource } from "@prisma/client";
 
 export async function POST(
   req: NextRequest,
@@ -29,31 +29,39 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const parsed = reportSchema.safeParse(body);
+    const reason =
+      typeof body.reason === "string" && body.reason.trim().length > 0
+        ? body.reason.trim()
+        : undefined;
 
-    await prisma.report.create({
-      data: {
-        contentType: "BLOG_ARTICLE",
-        reporterId: session.user.id,
-        articleId: article.id,
-        reason: parsed.success ? parsed.data.reason : undefined,
-      },
-    });
-
-    const reportCount = await prisma.report.count({
-      where: { articleId: article.id },
-    });
-
-    if (reportCount >= 3 && article.status === ContentStatus.PUBLISHED) {
-      await prisma.blogArticle.update({
-        where: { id: article.id },
-        data: { status: ContentStatus.FLAGGED },
+    const reportCount = await prisma.$transaction(async (tx) => {
+      await tx.report.create({
+        data: {
+          contentType: "BLOG_ARTICLE",
+          reporterId: session.user.id,
+          articleId: article.id,
+          reason,
+        },
       });
-    }
+
+      const count = await tx.report.count({
+        where: { articleId: article.id },
+      });
+
+      await openModerationCase(tx, {
+        contentType: "BLOG_ARTICLE",
+        contentId: article.id,
+        source: ModerationCaseSource.REPORT,
+        reason,
+        incrementReportCount: true,
+      });
+
+      return count;
+    });
 
     return NextResponse.json({ message: "举报成功", reportCount });
   } catch (error) {
-    console.error("Report error:", error);
+    console.error("Report blog article error:", error);
     return NextResponse.json({ error: "举报失败" }, { status: 500 });
   }
 }

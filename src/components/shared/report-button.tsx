@@ -16,9 +16,14 @@ import { toast } from "sonner";
 interface ReportButtonProps {
   contentType: "post" | "comment" | "article";
   contentId: string;
+  apiUrl?: string;
 }
 
-export function ReportButton({ contentType, contentId }: ReportButtonProps) {
+export function ReportButton({
+  contentType,
+  contentId,
+  apiUrl,
+}: ReportButtonProps) {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -28,14 +33,14 @@ export function ReportButton({ contentType, contentId }: ReportButtonProps) {
 
   const urlMap = {
     post: `/api/treehole/${contentId}/report`,
-    comment: `/api/treehole/${contentId}/report`,
+    comment: `/api/community/comments/${contentId}/report`,
     article: `/api/blog/${contentId}/report`,
   };
 
   async function handleReport() {
     setLoading(true);
     try {
-      const res = await fetch(urlMap[contentType], {
+      const res = await fetch(apiUrl || urlMap[contentType], {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),

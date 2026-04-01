@@ -4,8 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { blogArticleSchema } from "@/lib/validators";
 import { checkContent } from "@/lib/moderation";
 import { isRateLimited } from "@/lib/rate-limit";
-import { ContentStatus } from "@prisma/client";
+import {
+  ContentStatus,
+  ModerationAction,
+  ModerationCaseSource,
+} from "@prisma/client";
 import slugify from "slugify";
+import { openModerationCase } from "@/lib/community";
 
 // GET /api/blog - List articles
 export async function GET(req: NextRequest) {
@@ -106,9 +111,12 @@ export async function POST(req: NextRequest) {
 
     // Moderation check (only for published content)
     let status: (typeof ContentStatus)[keyof typeof ContentStatus] = ContentStatus.PUBLISHED;
+    let moderationResult: Awaited<ReturnType<typeof checkContent>> = {
+      flagged: false,
+    };
     if (!isDraft) {
-      const modResult = await checkContent(`${title}\n${content}`);
-      if (modResult.flagged) {
+      moderationResult = await checkContent(`${title}\n${content}`);
+      if (moderationResult.flagged) {
         status = ContentStatus.FLAGGED;
       }
     }
@@ -124,29 +132,55 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    const article = await prisma.blogArticle.create({
-      data: {
-        title,
-        slug,
-        content,
-        excerpt: excerpt || content.replace(/<[^>]*>/g, "").slice(0, 200),
-        coverImage: coverImage || null,
-        isDraft,
-        status: isDraft ? ContentStatus.PUBLISHED : status,
-        authorId: session.user.id,
-        seriesId: seriesId || null,
-        seriesOrder: seriesOrder || null,
-        tags: {
-          create: tagRecords.map((t) => ({ tagId: t.id })),
+    const article = await prisma.$transaction(async (tx) => {
+      const created = await tx.blogArticle.create({
+        data: {
+          title,
+          slug,
+          content,
+          excerpt: excerpt || content.replace(/<[^>]*>/g, "").slice(0, 200),
+          coverImage: coverImage || null,
+          isDraft,
+          status: isDraft ? ContentStatus.PUBLISHED : status,
+          authorId: session.user.id,
+          seriesId: seriesId || null,
+          seriesOrder: seriesOrder || null,
+          tags: {
+            create: tagRecords.map((t) => ({ tagId: t.id })),
+          },
         },
-      },
-      include: {
-        author: { select: { id: true, displayName: true } },
-        tags: { include: { tag: true } },
-      },
+        include: {
+          author: { select: { id: true, displayName: true } },
+          tags: { include: { tag: true } },
+        },
+      });
+
+      if (moderationResult.flagged) {
+        await tx.moderationLog.create({
+          data: {
+            contentType: "BLOG_ARTICLE",
+            contentId: created.id,
+            action: ModerationAction.REJECT,
+            reason: moderationResult.reason,
+            isAutomatic: true,
+          },
+        });
+
+        await openModerationCase(tx, {
+          contentType: "BLOG_ARTICLE",
+          contentId: created.id,
+          source: ModerationCaseSource.AI,
+          reason: moderationResult.reason,
+        });
+      }
+
+      return created;
     });
 
-    return NextResponse.json({ article }, { status: 201 });
+    return NextResponse.json(
+      { article, flagged: moderationResult.flagged },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Create article error:", error);
     return NextResponse.json(

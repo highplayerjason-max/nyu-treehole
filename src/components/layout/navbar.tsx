@@ -39,6 +39,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/treehole", label: t.nav.treehole },
+    { href: "/gym", label: t.nav.gym },
     { href: "/blog", label: t.nav.blog },
     { href: "/courses", label: t.nav.courses },
   ];

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ContentStatus } from "@prisma/client";
+import { CommunityBoard, ContentStatus } from "@prisma/client";
 
-// GET /api/admin/tags - list all hashtags with stats
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (session?.user?.role !== "ADMIN") {
@@ -12,10 +11,14 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") || "";
-  const filter = searchParams.get("filter") || "all"; // all | active | banned
+  const filter = searchParams.get("filter") || "all";
+  const scopeParam = searchParams.get("scope") || "treehole";
+  const scope =
+    scopeParam === "gym" ? CommunityBoard.GYM : CommunityBoard.TREEHOLE;
 
   const hashtags = await prisma.hashtag.findMany({
     where: {
+      scope,
       ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
       ...(filter === "banned" ? { isBanned: true } : {}),
       ...(filter === "active" ? { isBanned: false } : {}),
@@ -24,21 +27,25 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       name: true,
+      scope: true,
       isBanned: true,
       _count: { select: { posts: true } },
     },
   });
 
-  // Count only published posts per hashtag
   const withPublishedCount = await Promise.all(
-    hashtags.map(async (h) => {
+    hashtags.map(async (hashtag) => {
       const publishedCount = await prisma.hashtagOnPost.count({
         where: {
-          hashtagId: h.id,
-          post: { status: ContentStatus.PUBLISHED },
+          hashtagId: hashtag.id,
+          post: {
+            board: scope,
+            status: ContentStatus.PUBLISHED,
+          },
         },
       });
-      return { ...h, publishedCount };
+
+      return { ...hashtag, publishedCount };
     })
   );
 

@@ -1,23 +1,32 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ContentStatus } from "@prisma/client";
+import { CommunityBoard, ContentStatus } from "@prisma/client";
 
-export async function GET() {
-  // Only surface non-banned hashtags; count only PUBLISHED posts
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const scopeParam = searchParams.get("scope");
+  const scope =
+    scopeParam === "GYM" ? CommunityBoard.GYM : CommunityBoard.TREEHOLE;
+
   const hashtags = await prisma.hashtag.findMany({
-    where: { isBanned: false },
+    where: { isBanned: false, scope },
     select: {
       name: true,
       posts: {
-        where: { post: { status: ContentStatus.PUBLISHED } },
+        where: {
+          post: {
+            board: scope,
+            status: ContentStatus.PUBLISHED,
+          },
+        },
         select: { postId: true },
       },
     },
   });
 
   const ranked = hashtags
-    .map((h) => ({ name: h.name, count: h.posts.length }))
-    .filter((h) => h.count > 0)
+    .map((hashtag) => ({ name: hashtag.name, count: hashtag.posts.length }))
+    .filter((hashtag) => hashtag.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);
 

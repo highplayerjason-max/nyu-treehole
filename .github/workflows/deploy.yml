@@ -52,7 +52,24 @@ jobs:
             docker load < nyu-treehole.tar.gz
             rm -f nyu-treehole.tar.gz
 
-            docker compose up -d
+            docker compose up -d db
+
+            for i in $(seq 1 30); do
+              if docker compose exec -T db pg_isready -U postgres >/dev/null 2>&1; then
+                break
+              fi
+
+              if [ "$i" -eq 30 ]; then
+                echo "Database container did not become ready in time" >&2
+                exit 1
+              fi
+
+              sleep 2
+            done
+
+            docker compose run --rm --no-deps app npx prisma@6.19.2 migrate deploy
+
+            docker compose up -d app
 
             for i in $(seq 1 30); do
               if docker compose exec -T app true >/dev/null 2>&1; then
@@ -66,12 +83,5 @@ jobs:
 
               sleep 2
             done
-
-            docker compose exec -T app npx prisma@6.19.2 migrate deploy
-
-            docker exec nyu-treehole-db-1 psql \
-              -U postgres \
-              -d student_community \
-              -c 'ALTER TABLE "TreeholePost" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;' || true
 
             echo "Deploy done at $(date)"

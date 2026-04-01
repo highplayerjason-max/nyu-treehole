@@ -11,12 +11,16 @@ interface TrendingTag {
   count: number;
 }
 
-type TagScope = "blog" | "treehole";
+type TagScope = "blog" | "treehole" | "gym";
 
 export function Sidebar() {
   const { t } = useLanguage();
   const pathname = usePathname();
-  const scope: TagScope = pathname.startsWith("/blog") ? "blog" : "treehole";
+  const scope: TagScope = pathname.startsWith("/blog")
+    ? "blog"
+    : pathname.startsWith("/gym")
+    ? "gym"
+    : "treehole";
   const isBlogPage = scope === "blog";
 
   const [tagState, setTagState] = useState<{
@@ -33,7 +37,9 @@ export function Sidebar() {
   useEffect(() => {
     const endpoint = scope === "blog"
       ? "/api/tags/trending"
-      : "/api/hashtags/trending";
+      : scope === "gym"
+      ? "/api/hashtags/trending?scope=GYM"
+      : "/api/hashtags/trending?scope=TREEHOLE";
     const controller = new AbortController();
 
     fetch(endpoint, { signal: controller.signal })
@@ -63,6 +69,7 @@ export function Sidebar() {
   const navLinks = [
     { href: "/", label: t.sidebar.home },
     { href: "/treehole", label: t.nav.treehole },
+    { href: "/gym", label: t.nav.gym },
     { href: "/blog", label: t.nav.blog },
     { href: "/courses", label: t.nav.courses },
   ];
@@ -111,7 +118,7 @@ export function Sidebar() {
                 href={
                   isBlogPage
                     ? `/blog?tag=${encodeURIComponent(tag.name)}`
-                    : `/treehole?hashtag=${encodeURIComponent(tag.name)}`
+                    : `/${scope}?hashtag=${encodeURIComponent(tag.name)}`
                 }
               >
                 <Badge
