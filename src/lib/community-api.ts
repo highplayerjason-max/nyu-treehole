@@ -66,6 +66,10 @@ export async function listCommunityPosts(
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
   const hashtag = searchParams.get("hashtag");
   const mine = searchParams.get("mine") === "true";
+  const commentCountWhere =
+    mine && viewerId
+      ? { status: { not: ContentStatus.DELETED } }
+      : { status: ContentStatus.PUBLISHED };
 
   const where =
     mine && viewerId
@@ -114,7 +118,13 @@ export async function listCommunityPosts(
         where: { hashtag: { scope: board } },
         include: { hashtag: true },
       },
-      _count: { select: { comments: true, likes: true, reports: true } },
+      _count: {
+        select: {
+          comments: { where: commentCountWhere },
+          likes: true,
+          reports: true,
+        },
+      },
       ...(viewerId
         ? {
             likes: {
@@ -262,6 +272,10 @@ export async function getCommunityPost(
 ) {
   const session = await auth();
   const viewerId = session?.user?.id;
+  const commentVisibilityWhere =
+    viewerId || session?.user?.role === "ADMIN"
+      ? { status: { not: ContentStatus.DELETED } }
+      : { status: ContentStatus.PUBLISHED };
 
   const post = await prisma.treeholePost.findUnique({
     where: { id },
@@ -281,19 +295,20 @@ export async function getCommunityPost(
           }
         : {}),
       comments: {
-        where: {
-          status:
-            viewerId || session?.user?.role === "ADMIN"
-              ? { not: ContentStatus.DELETED }
-              : ContentStatus.PUBLISHED,
-        },
+        where: commentVisibilityWhere,
         orderBy: { createdAt: "asc" },
         include: {
           author: { select: { id: true, displayName: true } },
           _count: { select: { reports: true } },
         },
       },
-      _count: { select: { comments: true, likes: true, reports: true } },
+      _count: {
+        select: {
+          comments: { where: commentVisibilityWhere },
+          likes: true,
+          reports: true,
+        },
+      },
     },
   });
 
