@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { CreatePostForm } from "@/components/treehole/create-post-form";
 import { PostCard } from "@/components/treehole/post-card";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +33,15 @@ interface Post {
   }[];
 }
 
-async function fetchPostsPage(hashtag: string | null, cursor?: string) {
+async function fetchPostsPage(
+  hashtag: string | null,
+  cursor?: string,
+  mine?: boolean
+) {
   const params = new URLSearchParams();
   if (cursor) params.set("cursor", cursor);
   if (hashtag) params.set("hashtag", hashtag);
+  if (mine) params.set("mine", "true");
 
   const res = await fetch(`/api/treehole?${params}`);
   return res.json();
@@ -52,17 +58,21 @@ export default function TreeholePageWrapper() {
 function TreeholePage() {
   const searchParams = useSearchParams();
   const hashtag = searchParams.get("hashtag");
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
+  const { data: session } = useSession();
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showMine, setShowMine] = useState(false);
+  const allPostsLabel = lang === "zh" ? "全部帖子" : "All posts";
+  const myPostsLabel = lang === "zh" ? "我的发帖" : "My posts";
 
   useEffect(() => {
     let active = true;
 
     async function loadInitial() {
-      const data = await fetchPostsPage(hashtag);
+      const data = await fetchPostsPage(hashtag, undefined, showMine);
 
       if (!active) return;
 
@@ -76,11 +86,11 @@ function TreeholePage() {
     return () => {
       active = false;
     };
-  }, [hashtag]);
+  }, [hashtag, showMine]);
 
   async function refreshPosts() {
     setLoading(true);
-    const data = await fetchPostsPage(hashtag);
+    const data = await fetchPostsPage(hashtag, undefined, showMine);
     setPosts(data.posts || []);
     setNextCursor(data.nextCursor);
     setLoading(false);
@@ -89,7 +99,7 @@ function TreeholePage() {
   async function loadMore() {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    const data = await fetchPostsPage(hashtag, nextCursor);
+    const data = await fetchPostsPage(hashtag, nextCursor, showMine);
     setPosts((prev) => [...prev, ...(data.posts || [])]);
     setNextCursor(data.nextCursor);
     setLoadingMore(false);
@@ -107,16 +117,30 @@ function TreeholePage() {
                 {t.treehole.subtitle}
               </p>
             </div>
-            {hashtag && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">#{hashtag}</Badge>
-                <Link href="/treehole">
-                  <Button variant="ghost" size="sm">
-                    {t.treehole.clearFilter}
-                  </Button>
-                </Link>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {session && (
+                <Button
+                  variant={showMine ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setLoading(true);
+                    setShowMine((prev) => !prev);
+                  }}
+                >
+                  {showMine ? allPostsLabel : myPostsLabel}
+                </Button>
+              )}
+              {hashtag && (
+                <>
+                  <Badge variant="secondary">#{hashtag}</Badge>
+                  <Link href="/treehole">
+                    <Button variant="ghost" size="sm">
+                      {t.treehole.clearFilter}
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
